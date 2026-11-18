@@ -1,0 +1,18 @@
+<aside class="sidebar">
+    <h2 class="logo">UniTrack.</h2>
+    <p class="menu-label">MAIN MENU</p>
+
+    <nav>
+        <a href="/" class="{{ 'active' if slug is not defined else '' }}">Dashboard</a>
+        <a href="/students"    class="{{ 'active' if slug == 'students' else '' }}">Students</a>
+        <a href="/faculty"     class="{{ 'active' if slug == 'faculty' else '' }}">Faculty</a>
+        <a href="/courses"     class="{{ 'active' if slug == 'courses' else '' }}">Courses</a>
+        <a href="/enrollments" class="{{ 'active' if slug == 'enrollments' else '' }}">Enrollments</a>
+        <a href="/attendance"  class="{{ 'active' if slug == 'attendance' else '' }}">Attendance</a>
+        <a href="/results"     class="{{ 'active' if slug == 'results' else '' }}">Results</a>
+    </nav>
+
+    <div class="sidebar-bottom">
+        Smart University Management
+    </div>
+</aside>
