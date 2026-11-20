@@ -1,18 +1,18 @@
+{% from "_macros.html" import icon %}
 <aside class="sidebar">
-    <h2 class="logo">UniTrack.</h2>
-    <p class="menu-label">MAIN MENU</p>
-
+    <h2 class="logo"><i>U</i>UniTrack</h2>
+    <p class="menu-label">ADMIN MENU</p>
     <nav>
-        <a href="/" class="{{ 'active' if slug is not defined else '' }}">Dashboard</a>
-        <a href="/students"    class="{{ 'active' if slug == 'students' else '' }}">Students</a>
-        <a href="/faculty"     class="{{ 'active' if slug == 'faculty' else '' }}">Faculty</a>
-        <a href="/courses"     class="{{ 'active' if slug == 'courses' else '' }}">Courses</a>
-        <a href="/enrollments" class="{{ 'active' if slug == 'enrollments' else '' }}">Enrollments</a>
-        <a href="/attendance"  class="{{ 'active' if slug == 'attendance' else '' }}">Attendance</a>
-        <a href="/results"     class="{{ 'active' if slug == 'results' else '' }}">Results</a>
+        <a href="/" class="{{ 'active' if slug is not defined else '' }}">{{ icon('home') }}Dashboard</a>
+        <a href="/students"    class="{{ 'active' if slug == 'students' else '' }}">{{ icon('cap') }}Students</a>
+        <a href="/faculty"     class="{{ 'active' if slug == 'faculty' else '' }}">{{ icon('users') }}Faculty</a>
+        <a href="/courses"     class="{{ 'active' if slug == 'courses' else '' }}">{{ icon('book') }}Courses</a>
+        <a href="/enrollments" class="{{ 'active' if slug == 'enrollments' else '' }}">{{ icon('link') }}Enrollments</a>
+        <a href="/attendance"  class="{{ 'active' if slug == 'attendance' else '' }}">{{ icon('check') }}Attendance</a>
+        <a href="/results"     class="{{ 'active' if slug == 'results' else '' }}">{{ icon('award') }}Results</a>
     </nav>
-
     <div class="sidebar-bottom">
+        <a class="switch-link" href="/student/login">{{ icon('user') }}Open Student Portal →</a>
         Smart University Management
     </div>
 </aside>

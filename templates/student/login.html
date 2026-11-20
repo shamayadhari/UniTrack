@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UniTrack | Student Sign in</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+<div class="auth">
+    <section class="auth-brand">
+        <h2 class="logo"><i>U</i>UniTrack</h2>
+        <div>
+            <h2>Your whole semester,<br>in one place.</h2>
+            <p>Check attendance, results, courses and upcoming exams anytime.</p>
+        </div>
+        <small style="opacity:.8;position:relative;z-index:1">Smart University Management</small>
+    </section>
+    <section class="auth-form">
+        <div class="auth-box">
+            <h1>Student sign in</h1>
+            <p class="sub">Use your enrollment number and the email registered with the university.</p>
+            {% include "flash.html" %}
+            <form method="post" autocomplete="off">
+                <div class="form-group">
+                    <label for="enrollment_number">Enrollment number</label>
+                    <input id="enrollment_number" name="enrollment_number" required autofocus>
+                </div>
+                <div class="form-group">
+                    <label for="email">Registered email</label>
+                    <input id="email" name="email" type="email" required>
+                </div>
+                <button class="btn btn-primary btn-block" type="submit">Sign in</button>
+            </form>
+            <p class="auth-alt">Are you staff? <a href="/">Open admin dashboard</a></p>
+        </div>
+    </section>
+</div>
+</body>
+</html>

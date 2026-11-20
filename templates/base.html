@@ -1,0 +1,33 @@
+{% from "_macros.html" import icon %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UniTrack | {% block title %}{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+<div class="layout">
+    <div class="scrim" onclick="document.body.classList.remove('nav-open')"></div>
+    {% block sidebar %}{% include "sidebar.html" %}{% endblock %}
+
+    <main class="main-content">
+        <header class="topbar">
+            <button class="menu-btn" aria-label="Menu" onclick="document.body.classList.toggle('nav-open')">{{ icon('menu') }}</button>
+            <div style="flex:1">
+                <h1>{% block heading %}{% endblock %}</h1>
+                <p>{% block subheading %}UniTrack Management System{% endblock %}</p>
+            </div>
+            {% block profile %}<div class="profile"><span class="avatar">A</span><span>Administrator</span></div>{% endblock %}
+        </header>
+
+        {% include "flash.html" %}
+        {% block content %}{% endblock %}
+    </main>
+</div>
+{% block scripts %}{% endblock %}
+</body>
+</html>

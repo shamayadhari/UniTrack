@@ -4,11 +4,13 @@ import os
 from flask import Flask, render_template
 from db import get_db_connection
 from crud import crud
+from student import student
 
 app = Flask(__name__)
 # needed for flash() messages; set SECRET_KEY in the environment for real use
 app.secret_key = os.environ.get("SECRET_KEY", "unitrack-dev-key")
 app.register_blueprint(crud)      # Create / Update / Delete routes (see crud.py)
+app.register_blueprint(student)   # Student portal under /student (see student.py)
 
 
 

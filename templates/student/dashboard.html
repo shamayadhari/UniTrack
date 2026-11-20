@@ -1,0 +1,70 @@
+{% extends "student/base.html" %}
+{% from "_macros.html" import icon, badge %}
+{% block title %}Dashboard{% endblock %}
+{% block heading %}Dashboard{% endblock %}
+{% block content %}
+<section class="welcome">
+    <h2>Hi {{ me.first_name }} 👋</h2>
+    <p>Here's your academic snapshot for this semester.</p>
+    <div class="chips">
+        <span class="chip">{{ me.department_name }}</span>
+        <span class="chip">Semester {{ me.semester_number }} · {{ me.academic_year }}</span>
+        <span class="chip">{{ me.status }}</span>
+    </div>
+</section>
+
+{% if low_attendance %}
+<div class="alert alert-warn" style="margin:22px 0 0">⚠️ Your overall attendance is {{ s.attendance_pct }}%, below the required {{ min_att }}%. Check the Attendance page to see which courses need attention.</div>
+{% endif %}
+
+<section class="stats-grid">
+    <div class="stat-card {{ att_level }}"><div class="stat-icon">{{ icon('check') }}</div>
+        <div><p>Attendance</p><h2>{{ (s.attendance_pct ~ '%') if s.attendance_pct is not none else '–' }}</h2><span>Required {{ min_att }}%</span></div></div>
+    <div class="stat-card"><div class="stat-icon">{{ icon('trend') }}</div>
+        <div><p>Average Score</p><h2>{{ (s.avg_percentage ~ '%') if s.avg_percentage is not none else '–' }}</h2><span>Across all exams</span></div></div>
+    <div class="stat-card"><div class="stat-icon">{{ icon('book') }}</div>
+        <div><p>Courses</p><h2>{{ s.courses_enrolled or 0 }}</h2><span>Currently enrolled</span></div></div>
+    <div class="stat-card {{ 'bad' if s.failed_exams }}"><div class="stat-icon">{{ icon('award') }}</div>
+        <div><p>Class Rank</p><h2>{{ ('#' ~ rank.rnk|int) if rank else '–' }}</h2><span>{{ ('of ' ~ rank.total|int ~ ' in your semester') if rank else 'No results yet' }}</span></div></div>
+</section>
+
+<section class="charts-grid">
+    <div class="card"><h3>Attendance by Course</h3><p class="sub">Percentage of classes attended</p><div class="chart-box"><canvas id="attChart"></canvas></div></div>
+    <div class="card"><h3>Score by Course</h3><p class="sub">Average exam percentage</p><div class="chart-box"><canvas id="perfChart"></canvas></div></div>
+</section>
+
+<section class="two-col">
+    <div class="card">
+        <h3>Recent Results</h3><p class="sub">Your latest five exams</p>
+        <ul class="list">
+            {% for r in recent %}
+            <li><div><strong>{{ r.course_name }}</strong><small>{{ r.exam_name }} · {{ r.marks_obtained|round(1) }}/{{ r.maximum_marks|round(0)|int }}</small></div>{{ badge(r.grade) }}</li>
+            {% else %}<li class="empty">No results published yet.</li>{% endfor %}
+        </ul>
+        <p style="margin-top:14px"><a href="/student/results" class="btn btn-light btn-small">View all results</a></p>
+    </div>
+    <div class="card">
+        <h3>Upcoming Exams</h3><p class="sub">Next exams in your enrolled courses</p>
+        <ul class="list">
+            {% for e in upcoming %}
+            <li><div><strong>{{ e.course_name }}</strong><small>{{ e.exam_name }} · {{ e.maximum_marks|round(0)|int }} marks</small></div><span class="badge b-info">{{ e.exam_date.strftime('%d %b %Y') }}</span></li>
+            {% else %}<li class="empty">No upcoming exams scheduled.</li>{% endfor %}
+        </ul>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+Chart.defaults.font.family = "'Inter', sans-serif"; Chart.defaults.color = '#91899f';
+const base = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+               scales: { y: { beginAtZero: true, max: 100, grid: { color: '#f0ecf8' } }, x: { grid: { display: false } } } };
+const attVals = {{ att_values | tojson }};
+new Chart(document.getElementById('attChart'), { type: 'bar',
+    data: { labels: {{ att_labels | tojson }}, datasets: [{ data: attVals, borderRadius: 8, maxBarThickness: 46,
+            backgroundColor: attVals.map(v => v >= {{ min_att }} ? '#9370DB' : '#F08080') }] }, options: base });
+new Chart(document.getElementById('perfChart'), { type: 'bar',
+    data: { labels: {{ perf_labels | tojson }}, datasets: [{ data: {{ perf_values | tojson }}, backgroundColor: '#B39DDB', borderRadius: 8, maxBarThickness: 46 }] }, options: base });
+</script>
+{% endblock %}

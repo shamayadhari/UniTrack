@@ -1,211 +1,69 @@
-
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UniTrack | Dashboard</title>
-    <link rel="stylesheet"
-          href="{{ url_for('static', filename='css/style.css') }}">
-</head>
-
-<body>
-
-<div class="layout">
-
-    {% include "sidebar.html" %}
-
-    <main class="main-content">
-
-        <header class="topbar">
-            <div>
-                <h1>Dashboard</h1>
-                <p>Welcome to your university overview.</p>
-            </div>
-            <div class="profile">Administrator</div>
-        </header>
-
-        <section class="welcome">
-            <h2>Welcome to UniTrack 👋</h2>
-            <p>Here's what's happening across your university.</p>
-        </section>
-
-        {% include "flash.html" %}
-
-        <section class="quick-actions">
-            <h3>Quick Actions</h3>
-            <a href="/students/add" class="btn btn-primary">+ Student</a>
-            <a href="/faculty/add" class="btn btn-primary">+ Faculty</a>
-            <a href="/courses/add" class="btn btn-primary">+ Course</a>
-            <a href="/enrollments/add" class="btn btn-primary">+ Enrollment</a>
-            <a href="/attendance/add" class="btn btn-light">+ Attendance</a>
-            <a href="/results/add" class="btn btn-light">+ Result</a>
-        </section>
-
-        <section class="stats-grid">
-
-            <div class="stat-card">
-                <p>Total Students</p>
-                <h2>{{ stats.total_students }}</h2>
-                <span>Registered students</span>
-            </div>
-
-            <div class="stat-card">
-                <p>Total Faculty</p>
-                <h2>{{ stats.total_faculty }}</h2>
-                <span>Teaching staff</span>
-            </div>
-
-            <div class="stat-card">
-                <p>Total Courses</p>
-                <h2>{{ stats.total_courses }}</h2>
-                <span>Available courses</span>
-            </div>
-
-            <div class="stat-card">
-                <p>Active Enrollments</p>
-                <h2>{{ stats.active_enrollments }}</h2>
-                <span>Current enrollments</span>
-            </div>
-
-        </section>
-
-<!-- DASHBOARD ANALYTICS -->
-<section class="charts-section">
-
-    <h2>Academic Analytics</h2>
-    <p class="section-subtitle">
-        Insights and performance overview of UniTrack.
-    </p>
-
-    <div class="charts-grid">
-
-        <!-- Chart 1: Students by Department -->
-        <div class="chart-card">
-            <h3>Students by Department</h3>
-            <div class="chart-box"><canvas id="departmentChart"></canvas></div>
-        </div>
-
-        <!-- Chart 2: Attendance Overview -->
-        <div class="chart-card">
-            <h3>Attendance Overview</h3>
-            <div class="chart-box"><canvas id="attendanceChart"></canvas></div>
-        </div>
-
-        <!-- Chart 3: Course Performance -->
-        <div class="chart-card">
-            <h3>Course Performance</h3>
-            <div class="chart-box"><canvas id="performanceChart"></canvas></div>
-        </div>
-
-    </div>
+{% extends "base.html" %}
+{% from "_macros.html" import icon %}
+{% block title %}Dashboard{% endblock %}
+{% block heading %}Dashboard{% endblock %}
+{% block subheading %}Welcome to your university overview.{% endblock %}
+{% block content %}
+<section class="welcome">
+    <h2>Welcome to UniTrack 👋</h2>
+    <p>Here's what's happening across your university.</p>
 </section>
 
-    </main>
-</div>
+<section class="quick-actions">
+    <h3>Quick Actions</h3>
+    <a href="/students/add" class="btn btn-primary">+ Student</a>
+    <a href="/faculty/add" class="btn btn-primary">+ Faculty</a>
+    <a href="/courses/add" class="btn btn-primary">+ Course</a>
+    <a href="/enrollments/add" class="btn btn-primary">+ Enrollment</a>
+    <a href="/attendance/add" class="btn btn-light">+ Attendance</a>
+    <a href="/results/add" class="btn btn-light">+ Result</a>
+</section>
 
-<!-- Chart.js Library -->
+<section class="stats-grid">
+    <div class="stat-card"><div class="stat-icon">{{ icon('cap') }}</div><div><p>Total Students</p><h2>{{ stats.total_students }}</h2><span>Registered students</span></div></div>
+    <div class="stat-card"><div class="stat-icon">{{ icon('users') }}</div><div><p>Total Faculty</p><h2>{{ stats.total_faculty }}</h2><span>Teaching staff</span></div></div>
+    <div class="stat-card"><div class="stat-icon">{{ icon('book') }}</div><div><p>Total Courses</p><h2>{{ stats.total_courses }}</h2><span>Available courses</span></div></div>
+    <div class="stat-card"><div class="stat-icon">{{ icon('link') }}</div><div><p>Active Enrollments</p><h2>{{ stats.active_enrollments }}</h2><span>Current enrollments</span></div></div>
+</section>
+
+<h2 class="section-title">Academic Analytics</h2>
+<p class="section-subtitle">Insights and performance overview of UniTrack.</p>
+<section class="charts-grid">
+    <div class="card"><h3>Students by Department</h3><div class="chart-box"><canvas id="departmentChart"></canvas></div></div>
+    <div class="card"><h3>Attendance Overview</h3><div class="chart-box"><canvas id="attendanceChart"></canvas></div></div>
+    <div class="card"><h3>Course Performance</h3><div class="chart-box"><canvas id="performanceChart"></canvas></div></div>
+</section>
+{% endblock %}
+
+{% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 <script>
-    // Chart 1: Students by Department
-    const departmentLabels = {{ department_labels | tojson }};
-    const departmentValues = {{ department_values | tojson }};
+Chart.defaults.font.family = "'Inter', sans-serif";
+Chart.defaults.color = '#91899f';
+const grid = { color: '#f0ecf8' };
+const base = { responsive: true, maintainAspectRatio: false };
 
-    new Chart(document.getElementById('departmentChart'), {
-        type: 'bar',
-        data: {
-            labels: departmentLabels,
-            datasets: [{
-                label: 'Number of Students',
-                data: departmentValues,
-                backgroundColor: '#9370DB',
-                borderRadius: 8
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: { precision: 0 }
-                }
-            }
-        }
-    });
+new Chart(document.getElementById('departmentChart'), {
+    type: 'bar',
+    data: { labels: {{ department_labels | tojson }},
+            datasets: [{ label: 'Students', data: {{ department_values | tojson }}, backgroundColor: '#9370DB', borderRadius: 8, maxBarThickness: 46 }] },
+    options: { ...base, plugins: { legend: { display: false } },
+               scales: { y: { beginAtZero: true, ticks: { precision: 0 }, grid }, x: { grid: { display: false } } } }
+});
 
+new Chart(document.getElementById('attendanceChart'), {
+    type: 'doughnut',
+    data: { labels: {{ attendance_labels | tojson }},
+            datasets: [{ data: {{ attendance_values | tojson }}, backgroundColor: ['#9370DB', '#F08080', '#87CEEB'], borderWidth: 3, borderColor: '#ffffff' }] },
+    options: { ...base, cutout: '66%', plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, padding: 18 } } } }
+});
 
-    // Chart 2: Attendance Overview
-    const attendanceLabels = {{ attendance_labels | tojson }};
-    const attendanceValues = {{ attendance_values | tojson }};
-
-    new Chart(document.getElementById('attendanceChart'), {
-        type: 'doughnut',
-        data: {
-            labels: attendanceLabels,
-            datasets: [{
-                data: attendanceValues,
-                backgroundColor: [
-                    '#9370DB',
-                    '#F08080',
-                    '#87CEEB'
-                ],
-                borderWidth: 2,
-                borderColor: '#ffffff'
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'bottom'
-                }
-            }
-        }
-    });
-
-
-    // Chart 3: Course Performance
-    const performanceLabels = {{ performance_labels | tojson }};
-    const performanceValues = {{ performance_values | tojson }};
-
-    new Chart(document.getElementById('performanceChart'), {
-        type: 'bar',
-        data: {
-            labels: performanceLabels,
-            datasets: [{
-                label: 'Average Marks (%)',
-                data: performanceValues,
-                backgroundColor: '#B39DDB',
-                borderRadius: 8
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    max: 100,
-                    title: {
-                        display: true,
-                        text: 'Average Percentage'
-                    }
-                }
-            }
-        }
-    });
+new Chart(document.getElementById('performanceChart'), {
+    type: 'bar',
+    data: { labels: {{ performance_labels | tojson }},
+            datasets: [{ label: 'Average Marks (%)', data: {{ performance_values | tojson }}, backgroundColor: '#B39DDB', borderRadius: 8, maxBarThickness: 46 }] },
+    options: { ...base, plugins: { legend: { display: false } },
+               scales: { y: { beginAtZero: true, max: 100, grid, title: { display: true, text: 'Average Percentage' } }, x: { grid: { display: false } } } }
+});
 </script>
-</body>
-</html>
-
-</body>
-</html>
+{% endblock %}

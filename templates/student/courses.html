@@ -1,0 +1,21 @@
+{% extends "student/base.html" %}
+{% from "_macros.html" import badge %}
+{% block title %}My Courses{% endblock %}
+{% block heading %}My Courses{% endblock %}
+{% block content %}
+<p class="section-subtitle">{{ courses|length }} course{{ '' if courses|length == 1 else 's' }} · {{ credits }} active credits</p>
+<section class="course-grid">
+    {% for c in courses %}
+    <article class="course-card">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+            <span class="code">{{ c.course_code }}</span>{{ badge(c.enrollment_status) }}
+        </div>
+        <h3>{{ c.course_name }}</h3>
+        <small style="color:var(--muted)">👤 {{ c.faculty_name }}</small>
+        <div class="meta"><span>Semester {{ c.semester_number }} · Sec {{ c.section }}</span><span>{{ c.credits }} credits</span></div>
+    </article>
+    {% else %}
+    <div class="card empty" style="grid-column:1/-1">You aren't enrolled in any course yet.</div>
+    {% endfor %}
+</section>
+{% endblock %}

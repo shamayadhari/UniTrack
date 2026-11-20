@@ -1,0 +1,23 @@
+{% extends "student/base.html" %}
+{% from "_macros.html" import badge %}
+{% block title %}Profile{% endblock %}
+{% block heading %}My Profile{% endblock %}
+{% block content %}
+<section class="welcome" style="display:flex;align-items:center;gap:20px">
+    <span class="avatar" style="width:68px;height:68px;font-size:26px;background:rgba(255,255,255,.25);position:relative;z-index:1">{{ me.first_name[0]|upper }}</span>
+    <div style="position:relative;z-index:1"><h2 style="margin:0">{{ me.first_name }} {{ me.last_name or '' }}</h2><p>{{ me.enrollment_number }} · {{ me.department_name }}</p></div>
+</section>
+<div class="card">
+    <h3>Personal details</h3><p class="sub">To correct anything here, contact the administration office.</p>
+    <dl class="kv">
+        <div><dt>Email</dt><dd>{{ me.email or '-' }}</dd></div>
+        <div><dt>Phone</dt><dd>{{ me.phone or '-' }}</dd></div>
+        <div><dt>Gender</dt><dd>{{ me.gender or '-' }}</dd></div>
+        <div><dt>Date of birth</dt><dd>{{ me.date_of_birth.strftime('%d %b %Y') if me.date_of_birth else '-' }}</dd></div>
+        <div><dt>Admission date</dt><dd>{{ me.admission_date.strftime('%d %b %Y') if me.admission_date else '-' }}</dd></div>
+        <div><dt>Current semester</dt><dd>Semester {{ me.semester_number }} ({{ me.academic_year }})</dd></div>
+        <div><dt>Department</dt><dd>{{ me.department_name }}</dd></div>
+        <div><dt>Status</dt><dd>{{ badge(me.status) }}</dd></div>
+    </dl>
+</div>
+{% endblock %}

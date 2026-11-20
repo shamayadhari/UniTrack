@@ -1,0 +1,34 @@
+{% extends "student/base.html" %}
+{% from "_macros.html" import icon, badge, bar %}
+{% block title %}Results{% endblock %}
+{% block heading %}Results{% endblock %}
+{% block content %}
+<section class="stats-grid" style="margin-top:0">
+    <div class="stat-card"><div class="stat-icon">{{ icon('trend') }}</div><div><p>Average</p><h2>{{ (avg ~ '%') if avg is not none else '–' }}</h2><span>All exams</span></div></div>
+    <div class="stat-card"><div class="stat-icon">{{ icon('book') }}</div><div><p>Exams Taken</p><h2>{{ total }}</h2><span>Published results</span></div></div>
+    <div class="stat-card ok"><div class="stat-icon">{{ icon('check') }}</div><div><p>Passed</p><h2>{{ passed }}</h2><span>Pass mark 40%</span></div></div>
+    <div class="stat-card {{ 'bad' if failed }}"><div class="stat-icon">{{ icon('award') }}</div><div><p>Failed</p><h2>{{ failed }}</h2><span>Needs a retake</span></div></div>
+</section>
+
+{% for (code, name), exams in grouped.items() %}
+<div class="card">
+    <h3>{{ code }} · {{ name }}</h3>
+    <div class="table-wrap" style="margin-top:12px"><table>
+        <thead><tr><th>Exam</th><th>Date</th><th>Marks</th><th style="min-width:200px">Score</th><th>Grade</th><th>Status</th></tr></thead>
+        <tbody>
+        {% for e in exams %}
+        <tr>
+            <td>{{ e.exam_name }}</td>
+            <td>{{ e.exam_date.strftime('%d %b %Y') if e.exam_date else '-' }}</td>
+            <td>{{ e.marks_obtained|round(1) }} / {{ e.maximum_marks|round(0)|int }}</td>
+            <td><div style="display:flex;align-items:center"><span class="pct">{{ e.pct }}%</span>{{ bar(e.pct) }}</div></td>
+            <td>{{ badge(e.grade) }}</td><td>{{ badge(e.result_status) }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table></div>
+</div>
+{% else %}
+<div class="card empty">No results have been published for you yet.</div>
+{% endfor %}
+{% endblock %}

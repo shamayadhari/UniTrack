@@ -1,0 +1,4 @@
+{% extends "base.html" %}
+{% block sidebar %}{% include "student/sidebar.html" %}{% endblock %}
+{% block profile %}<a class="profile" href="/student/profile"><span class="avatar">{{ me.first_name[0]|upper }}</span><span>{{ me.first_name }} {{ me.last_name or '' }}</span></a>{% endblock %}
+{% block subheading %}{{ me.enrollment_number }} · {{ me.department_name }}{% endblock %}

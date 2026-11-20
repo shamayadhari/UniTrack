@@ -1,63 +1,31 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UniTrack | {{ 'Add' if mode == 'add' else 'Edit' }} {{ entity.title }}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-</head>
-<body>
-<div class="layout">
-
-    {% include "sidebar.html" %}
-
-    <main class="main-content">
-
-        <header class="topbar">
-            <div>
-                <h1>{{ 'Add' if mode == 'add' else 'Edit' }} {{ entity.title }}</h1>
-                <p>UniTrack Management System</p>
-            </div>
-            <div class="profile">Administrator</div>
-        </header>
-
-        {% include "flash.html" %}
-
-        <div class="form-card">
-            <form method="post" autocomplete="off">
-                <div class="form-grid">
-                    {% for f in fields %}
-                    <div class="form-group">
-                        <label for="{{ f.name }}">{{ f.label }}{% if f.required %} *{% endif %}</label>
-
-                        {% if f.type == 'select' %}
-                        <select id="{{ f.name }}" name="{{ f.name }}" {{ 'required' if f.required }}>
-                            <option value="">-- select --</option>
-                            {% for value, label in options[f.name] %}
-                            <option value="{{ value }}"
-                                {{ 'selected' if values.get(f.name) == value }}>{{ label }}</option>
-                            {% endfor %}
-                        </select>
-                        {% else %}
-                        <input id="{{ f.name }}" name="{{ f.name }}" type="{{ f.type }}"
-                               value="{{ values.get(f.name, '') }}"
-                               {% if f.step %}step="{{ f.step }}" min="0"{% endif %}
-                               {{ 'required' if f.required }}>
-                        {% endif %}
-                    </div>
+{% extends "base.html" %}
+{% block title %}{{ 'Add' if mode == 'add' else 'Edit' }} {{ entity.title }}{% endblock %}
+{% block heading %}{{ 'Add' if mode == 'add' else 'Edit' }} {{ entity.title }}{% endblock %}
+{% block content %}
+<div class="form-card">
+    <form method="post" autocomplete="off">
+        <div class="form-grid">
+            {% for f in fields %}
+            <div class="form-group">
+                <label for="{{ f.name }}">{{ f.label }}{% if f.required %} *{% endif %}</label>
+                {% if f.type == 'select' %}
+                <select id="{{ f.name }}" name="{{ f.name }}" {{ 'required' if f.required }}>
+                    <option value="">-- select --</option>
+                    {% for value, label in options[f.name] %}
+                    <option value="{{ value }}" {{ 'selected' if values.get(f.name) == value }}>{{ label }}</option>
                     {% endfor %}
-                </div>
-
-                <div class="form-actions">
-                    <button type="submit" class="btn btn-primary">
-                        {{ 'Save' if mode == 'add' else 'Update' }}
-                    </button>
-                    <a href="/{{ slug }}" class="btn btn-light">Cancel</a>
-                </div>
-            </form>
+                </select>
+                {% else %}
+                <input id="{{ f.name }}" name="{{ f.name }}" type="{{ f.type }}" value="{{ values.get(f.name, '') }}"
+                       {% if f.step %}step="{{ f.step }}" min="0"{% endif %} {{ 'required' if f.required }}>
+                {% endif %}
+            </div>
+            {% endfor %}
         </div>
-
-    </main>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">{{ 'Save' if mode == 'add' else 'Update' }}</button>
+            <a href="/{{ slug }}" class="btn btn-light">Cancel</a>
+        </div>
+    </form>
 </div>
-</body>
-</html>
+{% endblock %}

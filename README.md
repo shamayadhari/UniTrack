@@ -17,3 +17,9 @@
   result-validation trigger, the enrolment procedure) are shown as friendly messages.
 * `crud.sql` - the same INSERT / SELECT / UPDATE / DELETE statements per table, for the viva.
 * Fixed: dashboard cards were blank because template keys did not match `app.py`.
+
+## Student portal (new)
+Open http://127.0.0.1:5000/student/login and sign in with a student's **enrollment number + registered email** (both from the `student` table).
+Pages: Dashboard, My Courses, Attendance, Results, Profile. Everything is read-only and limited to the logged-in student. See `student.py`.
+The admin sidebar has an "Open Student Portal" link, and the student sidebar links back to the admin dashboard.
+UI: all pages share `templates/base.html` + one stylesheet (`static/css/style.css`), same purple palette.

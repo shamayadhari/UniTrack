@@ -1,108 +1,62 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UniTrack | {{ title }}</title>
-
-    <link rel="stylesheet"
-    href="{{ url_for('static', filename='css/style.css') }}">
-</head>
-
-<body>
-
-<div class="layout">
-
-    {% include "sidebar.html" %}
-
-    <main class="main-content">
-
-        <header class="topbar">
-            <div>
-                <h1>{{ title }}</h1>
-                <p>UniTrack Management System</p>
-            </div>
-            <div class="profile">Administrator</div>
-        </header>
-
-        <section class="welcome">
-            <h2>{{ title }} Management</h2>
-            <p>View and manage university {{ title|lower }} records.</p>
-        </section>
-
-        {% include "flash.html" %}
-
-        <div style="background:white; padding:25px;
-                    border-radius:16px; margin-top:30px;
-                    overflow-x:auto;">
-
-            <div class="table-head">
-                <h2>{{ title }} Records</h2>
-                {% if slug %}
-                <a href="/{{ slug }}/add" class="btn btn-primary">+ Add New</a>
-                {% endif %}
-            </div>
-
-            <table style="width:100%; border-collapse:collapse;
-                          text-align:left;">
-
-                <thead>
-                    <tr>
-                        {% for column in columns %}
-                        <th style="padding:14px; background:#eee8fb;
-                                   color:#7656bf; white-space:nowrap;">
-                            {{ column }}
-                        </th>
-                        {% endfor %}
-                        {% if slug %}
-                        <th style="padding:14px; background:#eee8fb;
-                                   color:#7656bf;">Actions</th>
-                        {% endif %}
-                    </tr>
-                </thead>
-
-                <tbody>
-                    {% for record in records %}
-                    <tr>
-                        {% for value in record %}
-                        <td style="padding:14px; border-bottom:1px solid #eee;
-                                   white-space:nowrap;">
-                            {{ value if value is not none else '-' }}
-                        </td>
-                        {% endfor %}
-                        {% if slug %}
-                        <td style="padding:14px; border-bottom:1px solid #eee;
-                                   white-space:nowrap;">
-                            {# the first column of every list query is the record id #}
-                            <a href="/{{ slug }}/{{ record[0] }}/edit" class="btn btn-small btn-light">Edit</a>
-                            <form method="post" action="/{{ slug }}/{{ record[0] }}/delete"
-                                  class="inline-form"
-                                  onsubmit="return confirm('Delete this record? Related attendance, results or enrollments may be deleted with it.');">
-                                <button type="submit" class="btn btn-small btn-danger">Delete</button>
-                            </form>
-                        </td>
-                        {% endif %}
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="{{ columns|length + (1 if slug else 0) }}"
-                            style="padding:20px;">
-                            No records found.
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-
-            </table>
-
-            <p style="margin-top:15px; color:#91899f;">
-                Total records: {{ records|length }}
-            </p>
-
+{% extends "base.html" %}
+{% from "_macros.html" import badge %}
+{% block title %}{{ title }}{% endblock %}
+{% block heading %}{{ title }}{% endblock %}
+{% block content %}
+<div class="card" style="margin-top:0">
+    <div class="table-head">
+        <div>
+            <h2>{{ title }} Records</h2>
+            <p class="section-subtitle">View and manage university {{ title|lower }} records.</p>
         </div>
+        <div class="table-tools">
+            <input type="search" class="search" id="tableSearch" placeholder="Search {{ title|lower }}…">
+            {% if slug %}<a href="/{{ slug }}/add" class="btn btn-primary">+ Add New</a>{% endif %}
+        </div>
+    </div>
 
-    </main>
+    <div class="table-wrap">
+        <table id="dataTable">
+            <thead>
+                <tr>
+                    {% for column in columns %}<th>{{ column }}</th>{% endfor %}
+                    {% if slug %}<th>Actions</th>{% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in records %}
+                <tr>
+                    {% for value in record %}
+                    <td>{% if columns[loop.index0] in ['Status', 'Grade'] %}{{ badge(value) }}{% else %}{{ value if value is not none else '-' }}{% endif %}</td>
+                    {% endfor %}
+                    {% if slug %}
+                    <td>
+                        {# the first column of every list query is the record id #}
+                        <a href="/{{ slug }}/{{ record[0] }}/edit" class="btn btn-small btn-light">Edit</a>
+                        <form method="post" action="/{{ slug }}/{{ record[0] }}/delete" class="inline-form"
+                              onsubmit="return confirm('Delete this record? Related attendance, results or enrollments may be deleted with it.');">
+                            <button type="submit" class="btn btn-small btn-danger">Delete</button>
+                        </form>
+                    </td>
+                    {% endif %}
+                </tr>
+                {% else %}
+                <tr><td colspan="{{ columns|length + (1 if slug else 0) }}" class="empty">No records found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <p class="table-foot">Showing <span id="shown">{{ records|length }}</span> of {{ records|length }} records</p>
 </div>
+{% endblock %}
 
-</body>
-</html>
+{% block scripts %}
+<script>
+const box = document.getElementById('tableSearch'), rows = [...document.querySelectorAll('#dataTable tbody tr')];
+box.addEventListener('input', () => {
+    const q = box.value.toLowerCase(); let n = 0;
+    rows.forEach(r => { const hit = r.textContent.toLowerCase().includes(q); r.style.display = hit ? '' : 'none'; if (hit) n++; });
+    document.getElementById('shown').textContent = n;
+});
+</script>
+{% endblock %}

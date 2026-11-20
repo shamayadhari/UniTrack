@@ -1,0 +1,33 @@
+{% extends "student/base.html" %}
+{% from "_macros.html" import badge, bar %}
+{% block title %}Attendance{% endblock %}
+{% block heading %}Attendance{% endblock %}
+{% block content %}
+{% if low %}
+<div class="alert alert-warn">⚠️ Below {{ min_att }}% in: {{ low|map(attribute='course_name')|join(', ') }}.</div>
+{% endif %}
+<div class="card" style="margin-top:0">
+    <h3>Course-wise attendance</h3><p class="sub">Present and Late count as attended. Minimum required: {{ min_att }}%.</p>
+    <div class="table-wrap"><table>
+        <thead><tr><th>Course</th><th>Present</th><th>Late</th><th>Absent</th><th>Total</th><th style="min-width:220px">Attendance</th></tr></thead>
+        <tbody>
+        {% for r in rows %}
+        <tr>
+            <td><strong>{{ r.course_code }}</strong> <span style="color:var(--muted)">{{ r.course_name }}</span></td>
+            <td>{{ r.present }}</td><td>{{ r.late }}</td><td>{{ r.absent }}</td><td>{{ r.total }}</td>
+            <td><div style="display:flex;align-items:center"><span class="pct">{{ r.pct }}%</span>{{ bar(r.pct) }}</div></td>
+        </tr>
+        {% else %}<tr><td colspan="6" class="empty">No attendance recorded yet.</td></tr>{% endfor %}
+        </tbody>
+    </table></div>
+</div>
+
+<div class="card">
+    <h3>Recent activity</h3><p class="sub">Your last 15 attendance entries</p>
+    <ul class="list">
+        {% for a in log %}
+        <li><div><strong>{{ a.course_name }}</strong><small>{{ a.attendance_date.strftime('%a, %d %b %Y') }}</small></div>{{ badge(a.attendance_status) }}</li>
+        {% else %}<li class="empty">Nothing yet.</li>{% endfor %}
+    </ul>
+</div>
+{% endblock %}
