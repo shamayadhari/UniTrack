@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon, badge, bar %}
+{% block title %}Reports{% endblock %}
+{% block heading %}Reports{% endblock %}
+{% block subheading %}Who needs attention, who is shining, how courses perform{% endblock %}
+{% block content %}
+<section class="stats-grid" style="margin-top:0;grid-template-columns:repeat(3,1fr)">
+    <div class="stat-card {{ 'bad' if at_risk }}"><div class="stat-icon">{{ icon('users') }}</div><div><p>At-risk students</p><h2>{{ at_risk|length }}</h2><span>Low attendance or failed exams</span></div></div>
+    <div class="stat-card"><div class="stat-icon">{{ icon('check') }}</div><div><p>Avg attendance</p><h2>{{ (avg_att ~ '%') if avg_att is not none else '–' }}</h2><span>Active students</span></div></div>
+    <div class="stat-card ok"><div class="stat-icon">{{ icon('award') }}</div><div><p>Overall pass rate</p><h2>{{ (pass_rate ~ '%') if pass_rate is not none else '–' }}</h2><span>All published results</span></div></div>
+</section>
+
+<div class="card">
+    <h3>⚠️ At-risk students</h3><p class="sub">Active students below {{ min_att }}% attendance or with failed exams.</p>
+    <div class="table-wrap"><table>
+        <thead><tr><th>Enrollment No.</th><th>Name</th><th>Department</th><th>Sem</th><th>Attendance</th><th>Avg score</th><th>Why</th></tr></thead>
+        <tbody>
+        {% for p in at_risk %}
+        <tr><td>{{ p.enrollment_number }}</td><td>{{ p.student_name }}</td><td>{{ p.department_name }}</td><td>{{ p.semester_number }}</td>
+            <td>{{ (p.attendance_pct ~ '%') if p.attendance_pct is not none else '-' }}</td>
+            <td>{{ (p.avg_percentage ~ '%') if p.avg_percentage is not none else '-' }}</td>
+            <td>{% for r in p.reasons %}<span class="badge b-bad" style="margin-right:4px">{{ r }}</span>{% endfor %}</td></tr>
+        {% else %}<tr><td colspan="7" class="empty">🎉 Nobody is at risk right now.</td></tr>{% endfor %}
+        </tbody>
+    </table></div>
+</div>
+
+<section class="two-col">
+    <div class="card"><h3>🏆 Top performers</h3><p class="sub">Highest average score</p>
+        <ul class="list">
+            {% for p in toppers %}<li><div><strong>#{{ loop.index }} {{ p.student_name }}</strong><small>{{ p.enrollment_number }} · {{ p.department_name }}</small></div><span class="badge b-ok">{{ p.avg_percentage }}%</span></li>
+            {% else %}<li class="empty">No results yet.</li>{% endfor %}
+        </ul></div>
+    <div class="card"><h3>Course performance</h3><p class="sub">Pass rate per course offering</p>
+        <ul class="list">
+            {% for c in courses if c.pass_rate is not none %}<li style="gap:18px"><div style="min-width:0"><strong>{{ c.course_code }} · Sec {{ c.section }}</strong><small>{{ c.faculty_name }} · avg {{ c.avg_percentage }}%</small></div>
+                <div style="display:flex;align-items:center;min-width:150px"><span class="pct">{{ c.pass_rate }}%</span>{{ bar(c.pass_rate) }}</div></li>
+            {% else %}<li class="empty">No graded exams yet.</li>{% endfor %}
+        </ul></div>
+</section>
+{% endblock %}

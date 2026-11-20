@@ -173,3 +173,11 @@ tbody tr:hover{background:var(--soft-2)}
   .search{width:100%}.table-tools{width:100%}
   .topbar h1{font-size:21px}
 }
+
+/* ---------- print (results / transcript) ---------- */
+@media print{
+  .sidebar,.menu-btn,.no-print,.scrim,.profile,.btn{display:none!important}
+  body{background:#fff}.main-content{padding:0;max-width:none}
+  .card,.stat-card,.welcome{box-shadow:none!important;break-inside:avoid}
+  .welcome{background:#fff!important;color:#000;border:1px solid #ccc}
+}

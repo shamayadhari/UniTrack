@@ -8,8 +8,13 @@
         <a href="/faculty"     class="{{ 'active' if slug == 'faculty' else '' }}">{{ icon('users') }}Faculty</a>
         <a href="/courses"     class="{{ 'active' if slug == 'courses' else '' }}">{{ icon('book') }}Courses</a>
         <a href="/enrollments" class="{{ 'active' if slug == 'enrollments' else '' }}">{{ icon('link') }}Enrollments</a>
-        <a href="/attendance"  class="{{ 'active' if slug == 'attendance' else '' }}">{{ icon('check') }}Attendance</a>
+        <a href="/attendance"  class="{{ 'active' if slug == 'attendance' and request.path != '/attendance/bulk' else '' }}">{{ icon('check') }}Attendance</a>
         <a href="/results"     class="{{ 'active' if slug == 'results' else '' }}">{{ icon('award') }}Results</a>
+    </nav>
+    <p class="menu-label" style="margin-top:22px">TOOLS</p>
+    <nav>
+        <a href="/attendance/bulk" class="{{ 'active' if slug == 'attendance' and request.path == '/attendance/bulk' }}">{{ icon('clipboard') }}Bulk Attendance</a>
+        <a href="/reports" class="{{ 'active' if slug == 'reports' }}">{{ icon('chart') }}Reports</a>
     </nav>
     <div class="sidebar-bottom">
         <a class="switch-link" href="/student/login">{{ icon('user') }}Open Student Portal →</a>

@@ -11,6 +11,8 @@
         </div>
         <div class="table-tools">
             <input type="search" class="search" id="tableSearch" placeholder="Search {{ title|lower }}…">
+            {% if slug == 'attendance' %}<a href="/attendance/bulk" class="btn btn-light">✓ Bulk Mark</a>{% endif %}
+            <a href="?export=csv" class="btn btn-light">⬇ CSV</a>
             {% if slug %}<a href="/{{ slug }}/add" class="btn btn-primary">+ Add New</a>{% endif %}
         </div>
     </div>

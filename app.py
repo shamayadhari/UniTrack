@@ -1,15 +1,18 @@
 
 
 import os
-from flask import Flask, render_template
+import csv, io
+from flask import Flask, render_template, request, Response
 from db import get_db_connection
 from crud import crud
 from student import student
+from admin_tools import tools
 
 app = Flask(__name__)
 # needed for flash() messages; set SECRET_KEY in the environment for real use
 app.secret_key = os.environ.get("SECRET_KEY", "unitrack-dev-key")
 app.register_blueprint(crud)      # Create / Update / Delete routes (see crud.py)
+app.register_blueprint(tools)     # Bulk attendance + reports (see admin_tools.py)
 app.register_blueprint(student)   # Student portal under /student (see student.py)
 
 
@@ -129,6 +132,7 @@ def students():
             s.student_id,
             s.enrollment_number,
             s.first_name || ' ' || COALESCE(s.last_name, '') AS student_name,
+            s.email,
             d.department_name,
             sem.semester_number,
             s.status
@@ -144,6 +148,7 @@ def students():
         "Student ID",
         "Enrollment No.",
         "Name",
+        "Email",
         "Department",
         "Semester",
         "Status"
@@ -267,6 +272,14 @@ def show_table(title, query, columns, slug=None):
 
         cursor.close()
         connection.close()
+
+        if request.args.get("export") == "csv":     # ?export=csv -> download the table
+            buf = io.StringIO()
+            writer = csv.writer(buf)
+            writer.writerow(columns)
+            writer.writerows(records)
+            return Response(buf.getvalue(), mimetype="text/csv", headers={
+                "Content-Disposition": f"attachment; filename={slug or title.lower()}.csv"})
 
         return render_template(
             "data_table.html",

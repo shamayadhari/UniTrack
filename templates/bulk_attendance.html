@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Bulk Attendance{% endblock %}
+{% block heading %}Bulk Attendance{% endblock %}
+{% block subheading %}Mark a whole class in one go{% endblock %}
+{% block content %}
+<div class="card" style="margin-top:0">
+    <form method="get" class="form-grid" style="align-items:end">
+        <div class="form-group"><label>Course offering</label>
+            <select name="offering_id" required>
+                <option value="">-- select --</option>
+                {% for o in offerings %}<option value="{{ o.offering_id }}" {{ 'selected' if o.offering_id == offering_id }}>{{ o.label }}</option>{% endfor %}
+            </select></div>
+        <div class="form-group"><label>Date</label><input type="date" name="date" value="{{ day }}" required></div>
+        <div><button class="btn btn-primary" type="submit">Load students</button></div>
+    </form>
+</div>
+
+{% if offering_id %}
+<div class="card">
+    <form method="post">
+        <input type="hidden" name="offering_id" value="{{ offering_id }}"><input type="hidden" name="date" value="{{ day }}">
+        <div class="table-head">
+            <div><h2>{{ students|length }} enrolled students · {{ day }}</h2><p class="section-subtitle">Already-marked students are pre-selected; saving again updates them.</p></div>
+            <div class="table-tools">
+                <button type="button" class="btn btn-light btn-small" onclick="setAll('Present')">All Present</button>
+                <button type="button" class="btn btn-light btn-small" onclick="setAll('Absent')">All Absent</button>
+            </div>
+        </div>
+        <div class="table-wrap"><table>
+            <thead><tr><th>Enrollment No.</th><th>Name</th><th>Present</th><th>Late</th><th>Absent</th></tr></thead>
+            <tbody>
+            {% for s in students %}
+            <tr><td>{{ s.enrollment_number }}</td><td>{{ s.name }}</td>
+                {% for opt in ['Present', 'Late', 'Absent'] %}
+                <td><input type="radio" name="status_{{ s.enrollment_id }}" value="{{ opt }}" {{ 'checked' if (s.current or 'Present') == opt }}></td>
+                {% endfor %}
+            </tr>
+            {% else %}<tr><td colspan="5" class="empty">No students are enrolled in this offering.</td></tr>{% endfor %}
+            </tbody>
+        </table></div>
+        {% if students %}<div class="form-actions"><button class="btn btn-primary" type="submit">Save attendance</button><a href="/attendance" class="btn btn-light">Cancel</a></div>{% endif %}
+    </form>
+</div>
+{% endif %}
+{% endblock %}
+{% block scripts %}<script>function setAll(v){document.querySelectorAll('input[type=radio][value='+v+']').forEach(r=>r.checked=true)}</script>{% endblock %}

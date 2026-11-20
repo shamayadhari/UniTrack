@@ -65,6 +65,25 @@ def att_level(pct):
     return "ok" if pct >= MIN_ATTENDANCE else "warn" if pct >= 60 else "bad"
 
 
+def planner(attended, total):
+    """How many classes to attend (or can be skipped) to stay at the minimum."""
+    if not total:
+        return "-"
+    if attended * 100 >= MIN_ATTENDANCE * total:
+        skip = int(attended * 100 / MIN_ATTENDANCE - total)
+        return f"Can skip {skip} class{'es' if skip != 1 else ''}" if skip else "Don't miss the next class"
+    need = -(-(MIN_ATTENDANCE * total - 100 * attended) // (100 - MIN_ATTENDANCE))
+    return f"Attend next {need} class{'es' if need != 1 else ''}"
+
+
+def grade_point(pct):
+    """Same cut-offs as the grading trigger: A+ >=90 ... D >=40, else F."""
+    for cut, pts in ((90, 10), (80, 9), (70, 8), (60, 7), (50, 6), (40, 5)):
+        if pct >= cut:
+            return pts
+    return 0
+
+
 # ------------------------------------------------------------ login / logout
 @student.route("/login", methods=["GET", "POST"])
 def login():
@@ -186,6 +205,7 @@ def attendance(me):
     for r in rows:
         r["pct"] = round(100 * (r["present"] + r["late"]) / r["total"], 1) if r["total"] else 0
         r["level"] = att_level(r["pct"])
+        r["note"] = planner(r["present"] + r["late"], r["total"])
     log = run("""SELECT a.attendance_date, c.course_name, a.attendance_status
                  FROM attendance a
                  JOIN enrollment en ON en.enrollment_id = a.enrollment_id
@@ -202,7 +222,7 @@ def attendance(me):
 @student.route("/results")
 @login_required
 def results(me):
-    rows = run("""SELECT c.course_code, c.course_name, ex.exam_name, ex.exam_date,
+    rows = run("""SELECT c.course_code, c.course_name, c.credits, ex.exam_name, ex.exam_date,
                          r.marks_obtained, ex.maximum_marks, r.grade, r.result_status,
                          ROUND(r.marks_obtained * 100 / ex.maximum_marks, 1) AS pct
                   FROM results r
@@ -215,9 +235,14 @@ def results(me):
     grouped = {}
     for r in rows:
         grouped.setdefault((r["course_code"], r["course_name"]), []).append(r)
+    summary = {k: dict(avg=round(sum(e["pct"] for e in v) / len(v), 1), credits=v[0]["credits"]) for k, v in grouped.items()}
+    for s in summary.values():
+        s["gp"] = grade_point(s["avg"])
+    credit_sum = sum(s["credits"] for s in summary.values())
+    gpa = round(sum(s["gp"] * s["credits"] for s in summary.values()) / credit_sum, 2) if credit_sum else None
     passed = sum(1 for r in rows if r["result_status"] == "Pass")
     return render_template("student/results.html", me=me, active="results", grouped=grouped,
-                           total=len(rows), passed=passed, failed=len(rows) - passed,
+                           summary=summary, gpa=gpa, total=len(rows), passed=passed, failed=len(rows) - passed,
                            avg=round(sum(r["pct"] for r in rows) / len(rows), 1) if rows else None)
 
 
