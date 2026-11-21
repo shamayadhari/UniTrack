@@ -1,0 +1,92 @@
+{% extends layout %}
+{% from "_macros.html" import icon, badge %}
+{% block title %}{{ heading }}{% endblock %}
+{% block heading %}{{ heading }}{% endblock %}
+{% block subheading %}{{ sub or 'UniTrack Management System' }}{% endblock %}
+{% block content %}
+{% if welcome %}
+<section class="welcome"><h2>{{ welcome.title }}</h2><p>{{ welcome.text }}</p>
+    {% if welcome.chips %}<div class="chips">{% for c in welcome.chips %}<span class="chip">{{ c }}</span>{% endfor %}</div>{% endif %}</section>
+{% endif %}
+{% if stats %}
+<section class="stats-grid" style="{{ 'margin-top:0' if not welcome else '' }}">
+    {% for s in stats %}<div class="stat-card {{ s.cls }}"><div class="stat-icon">{{ icon(s.icon or 'chart') }}</div>
+        <div><p>{{ s.label }}</p><h2>{{ s.value }}</h2><span>{{ s.sub }}</span></div></div>{% endfor %}
+</section>
+{% endif %}
+
+{% for sec in sections %}
+<div class="card" {% if loop.first and not stats and not welcome %}style="margin-top:0"{% endif %}>
+    {% if sec.title %}<h3>{{ sec.title }}</h3>{% endif %}
+    {% if sec.sub %}<p class="sub">{{ sec.sub }}</p>{% endif %}
+
+    {% if sec.form %}{% set f = sec.form %}
+    <form method="{{ f.method }}" {% if f.action %}action="{{ f.action }}"{% endif %} {% if f.enctype %}enctype="{{ f.enctype }}"{% endif %} autocomplete="off">
+        <div class="form-grid">
+            {% for fld in f.fields %}
+            <div class="form-group" {% if fld.type == 'textarea' %}style="grid-column:1/-1"{% endif %}>
+                <label>{{ fld.label }}{% if fld.required %} *{% endif %}</label>
+                {% if fld.type == 'select' %}
+                <select name="{{ fld.name }}" {{ 'required' if fld.required }}>
+                    <option value="">{{ fld.blank or '-- select --' }}</option>
+                    {% for v, l in fld.options %}<option value="{{ v }}" {{ 'selected' if fld.value|string == v|string }}>{{ l }}</option>{% endfor %}
+                </select>
+                {% elif fld.type == 'textarea' %}
+                <textarea name="{{ fld.name }}" rows="3" placeholder="{{ fld.placeholder }}" {{ 'required' if fld.required }}>{{ fld.value }}</textarea>
+                {% else %}
+                <input type="{{ fld.type }}" name="{{ fld.name }}" value="{{ fld.value }}" placeholder="{{ fld.placeholder }}"
+                       {% if fld.type == 'number' %}step="{{ fld.step or 1 }}" min="{{ fld.min or 0 }}"{% endif %}
+                       {% if fld.accept %}accept="{{ fld.accept }}"{% endif %} {{ 'required' if fld.required }}>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        <div class="form-actions"><button class="btn btn-primary" type="submit">{{ f.submit }}</button></div>
+    </form>
+    {% endif %}
+
+    {% if sec.html %}{{ sec.html|safe }}{% endif %}
+
+    {% if sec.notes is defined and sec.notes is not none %}
+    <ul class="list">
+        {% for n in sec.notes %}
+        <li style="align-items:flex-start"><div><strong>{{ n.title }}</strong><small>{{ n.meta }}</small>{% if n.text %}<p style="margin-top:6px;white-space:pre-line">{{ n.text }}</p>{% endif %}</div>{% if n.badge %}{{ badge(n.badge) }}{% endif %}</li>
+        {% else %}<li class="empty">{{ sec.empty }}</li>{% endfor %}
+    </ul>
+    {% endif %}
+
+    {% if sec.grid is defined and sec.grid is not none %}
+    <div class="tt-grid">
+        {% for day, slots in sec.grid %}
+        <div class="tt-day"><h4>{{ day }}</h4>
+            {% for s in slots %}<div class="tt-slot"><b>{{ s.time }}</b><span>{{ s.title }}</span><small>{{ s.sub }}</small></div>
+            {% else %}<p class="tt-empty">Free</p>{% endfor %}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if sec.columns %}
+    <div class="table-wrap" {% if sec.form %}style="margin-top:22px"{% endif %}>
+        <table>
+            <thead><tr>{% for c in sec.columns %}<th>{{ c }}</th>{% endfor %}{% if sec.has_actions %}<th>Actions</th>{% endif %}</tr></thead>
+            <tbody>
+            {% for r in sec.rows %}
+            <tr>
+                {% for v in r.cells %}<td {% if v is string and v|length > 60 %}style="white-space:normal;min-width:220px"{% endif %}>{% if sec.columns[loop.index0] in ['Status', 'Grade'] %}{{ badge(v) }}{% else %}{{ v if v is not none and v != '' else '-' }}{% endif %}</td>{% endfor %}
+                {% if sec.has_actions %}<td>
+                    {% for a in r.actions %}
+                    {% if a.is_link %}<a class="btn btn-small {{ a.cls }}" href="{{ a.url }}">{{ a.label }}</a>
+                    {% else %}<form method="post" action="{{ a.url }}" class="inline-form" {% if a.confirm %}onsubmit="return confirm('{{ a.confirm }}')"{% endif %}>
+                        {% for fl in a.fields %}<input class="mini" name="{{ fl.name }}" placeholder="{{ fl.placeholder }}">{% endfor %}
+                        <button class="btn btn-small {{ a.cls }}" type="submit">{{ a.label }}</button></form>{% endif %}
+                    {% endfor %}</td>{% endif %}
+            </tr>
+            {% else %}<tr><td colspan="{{ sec.columns|length + (1 if sec.has_actions else 0) }}" class="empty">{{ sec.empty }}</td></tr>{% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</div>
+{% endfor %}
+{% endblock %}

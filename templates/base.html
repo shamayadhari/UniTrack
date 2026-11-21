@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script>try{document.documentElement.dataset.theme=localStorage.getItem('theme')||''}catch(e){}</script>
 </head>
 <body>
 <div class="layout">
@@ -21,13 +22,15 @@
                 <h1>{% block heading %}{% endblock %}</h1>
                 <p>{% block subheading %}UniTrack Management System{% endblock %}</p>
             </div>
-            {% block profile %}<div class="profile"><span class="avatar">A</span><span>Administrator</span></div>{% endblock %}
+            <button class="theme-btn" aria-label="Toggle dark mode" title="Dark / light" onclick="toggleTheme()">◐</button>
+            {% block profile %}<a class="profile" href="/logout" title="Sign out"><span class="avatar">A</span><span>Admin · Sign out</span></a>{% endblock %}
         </header>
 
         {% include "flash.html" %}
         {% block content %}{% endblock %}
     </main>
 </div>
+<script>function toggleTheme(){var d=document.documentElement,t=d.dataset.theme==='dark'?'':'dark';d.dataset.theme=t;try{localStorage.setItem('theme',t)}catch(e){}}</script>
 {% block scripts %}{% endblock %}
 </body>
 </html>

@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends layout %}
 {% block title %}Bulk Attendance{% endblock %}
 {% block heading %}Bulk Attendance{% endblock %}
 {% block subheading %}Mark a whole class in one go{% endblock %}
@@ -38,7 +38,7 @@
             {% else %}<tr><td colspan="5" class="empty">No students are enrolled in this offering.</td></tr>{% endfor %}
             </tbody>
         </table></div>
-        {% if students %}<div class="form-actions"><button class="btn btn-primary" type="submit">Save attendance</button><a href="/attendance" class="btn btn-light">Cancel</a></div>{% endif %}
+        {% if students %}<div class="form-actions"><button class="btn btn-primary" type="submit">Save attendance</button><a href="{{ back }}" class="btn btn-light">Cancel</a></div>{% endif %}
     </form>
 </div>
 {% endif %}

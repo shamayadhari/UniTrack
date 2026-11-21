@@ -13,6 +13,7 @@ NOTE: the database has no password column, so sign-in checks the enrollment
 number AND the email stored for that student. Fine for a college project demo;
 add a hashed password column before any real deployment.
 """
+from datetime import date
 from decimal import Decimal
 from functools import wraps
 from flask import Blueprint, render_template, request, redirect, session, flash
@@ -23,20 +24,7 @@ student = Blueprint("student", __name__, url_prefix="/student")
 MIN_ATTENDANCE = 75
 
 
-def run(sql, params=(), one=False):
-    """Run a SELECT with parameters; returns list of dicts (or one dict / None)."""
-    conn = get_db_connection()
-    if conn is None:
-        raise ConnectionError("Database connection failed!")
-    try:
-        cur = conn.cursor(cursor_factory=RealDictCursor)
-        cur.execute(sql, params)
-        rows = [{k: float(v) if isinstance(v, Decimal) else v for k, v in r.items()}
-                for r in cur.fetchall()]
-        cur.close()
-    finally:
-        conn.close()
-    return (rows[0] if rows else None) if one else rows
+from util import run, page, section, row, act, field, form, grid, write, fmt_date, fmt_time  # shared helpers
 
 
 @student.errorhandler(ConnectionError)
@@ -48,7 +36,7 @@ def login_required(view):
     @wraps(view)
     def wrapper(*args, **kwargs):
         if "student_id" not in session:
-            return redirect("/student/login")
+            return redirect("/login")
         me = run("""SELECT s.*, d.department_name, sem.semester_number, sem.academic_year
                     FROM student s
                     JOIN department d ON d.department_id = s.department_id
@@ -56,7 +44,7 @@ def login_required(view):
                     WHERE s.student_id = %s""", (session["student_id"],), one=True)
         if me is None:                      # student deleted by admin meanwhile
             session.clear()
-            return redirect("/student/login")
+            return redirect("/login")
         return view(me, *args, **kwargs)
     return wrapper
 
@@ -85,26 +73,14 @@ def grade_point(pct):
 
 
 # ------------------------------------------------------------ login / logout
-@student.route("/login", methods=["GET", "POST"])
+@student.route("/login")
 def login():
-    if request.method == "POST":
-        enr = request.form.get("enrollment_number", "").strip()
-        email = request.form.get("email", "").strip()
-        row = run("""SELECT student_id FROM student
-                     WHERE LOWER(enrollment_number) = LOWER(%s) AND LOWER(email) = LOWER(%s)""",
-                  (enr, email), one=True)
-        if row:
-            session["student_id"] = row["student_id"]
-            return redirect("/student/")
-        flash("Enrollment number and email don't match any student.", "error")
-    return render_template("student/login.html")
+    return redirect("/login")
 
 
 @student.route("/logout")
 def logout():
-    session.pop("student_id", None)
-    flash("You have been signed out.", "success")
-    return redirect("/student/login")
+    return redirect("/logout")
 
 
 # ---------------------------------------------------------------- dashboard
@@ -159,13 +135,28 @@ def dashboard(me):
                         AND ex.exam_date >= CURRENT_DATE
                       ORDER BY ex.exam_date LIMIT 5""", (sid,))
 
+    notices = run("""SELECT title, body, created_at FROM announcement
+                     WHERE audience IN ('All', 'Students') AND (department_id IS NULL OR department_id = %s)
+                     ORDER BY created_at DESC LIMIT 4""", (me["department_id"],))
+    today_classes = run("""SELECT t.start_time, t.end_time, c.course_name, t.room, f.faculty_name
+                           FROM enrollment en
+                           JOIN timetable t ON t.offering_id = en.offering_id
+                           JOIN course_offering o ON o.offering_id = en.offering_id
+                           JOIN course c ON c.course_id = o.course_id
+                           JOIN faculty f ON f.faculty_id = o.faculty_id
+                           WHERE en.student_id = %s AND en.enrollment_status = 'Enrolled' AND t.day_of_week = %s
+                           ORDER BY t.start_time""", (sid, date.today().isoweekday()))
+    fees_due = run("SELECT COALESCE(SUM(amount), 0) AS due, COUNT(*) AS n FROM fee WHERE student_id = %s AND status = 'Pending'",
+                   (sid,), one=True)
+
     pct = summary.get("attendance_pct")
     return render_template(
         "student/dashboard.html", me=me, active="dashboard", s=summary, rank=rank,
         att_level=att_level(pct) if pct is not None else "", low_attendance=pct is not None and pct < MIN_ATTENDANCE,
         att_labels=[a[0] for a in att_chart], att_values=[a[1] for a in att_chart],
         perf_labels=[p["course_code"] for p in perf], perf_values=[p["pct"] for p in perf],
-        recent=recent, upcoming=upcoming, min_att=MIN_ATTENDANCE)
+        recent=recent, upcoming=upcoming, min_att=MIN_ATTENDANCE,
+        notices=notices, today_classes=today_classes, fees_due=fees_due, today=date.today())
 
 
 # ------------------------------------------------------------------ courses
@@ -251,3 +242,145 @@ def results(me):
 @login_required
 def profile(me):
     return render_template("student/profile.html", me=me, active="profile")
+
+
+# =================================================== v4: timetable, notices, leave, fees ...
+def spage(me, active, heading, sections, sub="", **ctx):
+    return page("student/base.html", heading, sections, sub, me=me, active=active, **ctx)
+
+
+@student.route("/timetable")
+@login_required
+def timetable(me):
+    rows = run("""SELECT t.day_of_week, t.start_time, t.end_time, c.course_code || ' · ' || c.course_name AS title,
+                         f.faculty_name || ' · Room ' || t.room AS sub
+                  FROM enrollment en
+                  JOIN course_offering o ON o.offering_id = en.offering_id
+                  JOIN timetable t ON t.offering_id = o.offering_id
+                  JOIN course c ON c.course_id = o.course_id
+                  JOIN faculty f ON f.faculty_id = o.faculty_id
+                  WHERE en.student_id = %s AND en.enrollment_status = 'Enrolled'
+                  ORDER BY t.day_of_week, t.start_time""", (me["student_id"],))
+    return spage(me, "timetable", "Timetable", [section(grid=grid(rows))], "Your weekly class schedule")
+
+
+@student.route("/notices")
+@login_required
+def notices(me):
+    rows = run("""SELECT title, body, audience, created_at FROM announcement
+                  WHERE audience IN ('All', 'Students') AND (department_id IS NULL OR department_id = %s)
+                  ORDER BY created_at DESC LIMIT 50""", (me["department_id"],))
+    return spage(me, "notices", "Notices", [section(
+        notes=[dict(title=n["title"], meta=fmt_date(n["created_at"]), text=n["body"]) for n in rows],
+        empty="No notices right now.")], "Announcements from the university")
+
+
+@student.route("/leave")
+@login_required
+def leave(me):
+    rows = run("SELECT * FROM leave_request WHERE student_id = %s ORDER BY created_at DESC", (me["student_id"],))
+    return spage(me, "leave", "Leave", [
+        section("Apply for leave", form=form([
+            field("from_date", "From", "date", value=date.today().isoformat()),
+            field("to_date", "To", "date", value=date.today().isoformat()),
+            field("reason", "Reason", "textarea")], "/student/leave/apply", "Submit request")),
+        section("My requests", columns=["From", "To", "Reason", "Status", "Admin note"],
+                rows=[row([fmt_date(r["from_date"]), fmt_date(r["to_date"]), r["reason"], r["status"], r["admin_note"]]) for r in rows],
+                empty="You haven't applied for leave."),
+    ], "Request time off; the admin will approve or reject")
+
+
+@student.route("/leave/apply", methods=["POST"])
+@login_required
+def leave_apply(me):
+    f = request.form
+    write("INSERT INTO leave_request (student_id, from_date, to_date, reason) VALUES (%s, %s, %s, %s)",
+          (me["student_id"], f.get("from_date"), f.get("to_date"), f.get("reason", "").strip()), "Leave request submitted.")
+    return redirect("/student/leave")
+
+
+@student.route("/fees")
+@login_required
+def fees(me):
+    rows = run("SELECT * FROM fee WHERE student_id = %s ORDER BY due_date DESC, fee_id DESC", (me["student_id"],))
+    due = sum(r["amount"] for r in rows if r["status"] == "Pending")
+    paid = sum(r["amount"] for r in rows if r["status"] == "Paid")
+    return spage(me, "fees", "Fees", [section(
+        columns=["Fee", "Amount", "Due date", "Status", "Paid on", "Receipt no."],
+        rows=[row([r["title"], f"₹{r['amount']:,.0f}", fmt_date(r["due_date"]), r["status"], fmt_date(r["paid_on"]), r["receipt_no"]],
+                  *([act("Receipt", f"/student/fees/{r['fee_id']}/receipt", get=True)] if r["status"] == "Paid" else []))
+              for r in rows], empty="No fees have been raised for you.")],
+        "Your fee status and receipts",
+        stats=[dict(label="Pending", value=f"₹{due:,.0f}", sub="Pay at the accounts office", icon="wallet", cls="warn" if due else "ok"),
+               dict(label="Paid so far", value=f"₹{paid:,.0f}", sub="Receipts available below", icon="check")])
+
+
+@student.route("/fees/<int:fee_id>/receipt")
+@login_required
+def receipt(me, fee_id):
+    fee = run("SELECT * FROM fee WHERE fee_id = %s AND student_id = %s AND status = 'Paid'",
+              (fee_id, me["student_id"]), one=True)
+    if fee is None:
+        return redirect("/student/fees")
+    return render_template("student/receipt.html", me=me, fee=fee)
+
+
+@student.route("/feedback")
+@login_required
+def feedback(me):
+    open_courses = run("""SELECT en.enrollment_id, c.course_code || ' · ' || c.course_name || ' (' || f.faculty_name || ')' AS label
+                          FROM enrollment en
+                          JOIN course_offering o ON o.offering_id = en.offering_id
+                          JOIN course c ON c.course_id = o.course_id
+                          JOIN faculty f ON f.faculty_id = o.faculty_id
+                          WHERE en.student_id = %s AND en.enrollment_status <> 'Dropped'
+                            AND NOT EXISTS (SELECT 1 FROM feedback fb WHERE fb.enrollment_id = en.enrollment_id)""",
+                       (me["student_id"],))
+    given = run("""SELECT c.course_code, c.course_name, fb.rating, fb.comment, fb.created_at
+                   FROM feedback fb JOIN enrollment en ON en.enrollment_id = fb.enrollment_id
+                   JOIN course_offering o ON o.offering_id = en.offering_id
+                   JOIN course c ON c.course_id = o.course_id
+                   WHERE en.student_id = %s ORDER BY fb.created_at DESC""", (me["student_id"],))
+    sections = []
+    if open_courses:
+        sections.append(section("Rate a course", "Your name is never shown to faculty.", form=form([
+            field("enrollment_id", "Course", "select", options=[(o["enrollment_id"], o["label"]) for o in open_courses]),
+            field("rating", "Rating", "select", options=[(5, "5 - Excellent"), (4, "4 - Good"), (3, "3 - Okay"), (2, "2 - Poor"), (1, "1 - Very poor")]),
+            field("comment", "Comment (optional)", "textarea", False)], "/student/feedback/add", "Submit feedback")))
+    sections.append(section("My feedback", columns=["Course", "Rating", "Comment", "Date"],
+                            rows=[row([f"{g['course_code']} · {g['course_name']}", "⭐" * g["rating"], g["comment"], fmt_date(g["created_at"])]) for g in given],
+                            empty="No feedback given yet."))
+    return spage(me, "feedback", "Course Feedback", sections, "Help improve teaching quality")
+
+
+@student.route("/feedback/add", methods=["POST"])
+@login_required
+def feedback_add(me):
+    f = request.form
+    write("""INSERT INTO feedback (enrollment_id, rating, comment)
+             SELECT en.enrollment_id, %s, %s FROM enrollment en
+             WHERE en.enrollment_id = %s AND en.student_id = %s AND en.enrollment_status <> 'Dropped'""",
+          (f.get("rating"), f.get("comment", "").strip() or None, f.get("enrollment_id"), me["student_id"]), "Thanks for your feedback!")
+    return redirect("/student/feedback")
+
+
+@student.route("/support")
+@login_required
+def support(me):
+    rows = run("SELECT * FROM support_ticket WHERE student_id = %s ORDER BY created_at DESC", (me["student_id"],))
+    return spage(me, "support", "Ask Admin", [
+        section("Send a query or complaint", form=form([
+            field("subject", "Subject"), field("message", "Message", "textarea")], "/student/support/add", "Send")),
+        section("My queries", columns=["Date", "Subject", "Message", "Status", "Reply"],
+                rows=[row([fmt_date(r["created_at"]), r["subject"], r["message"], r["status"], r["reply"]]) for r in rows],
+                empty="No queries yet."),
+    ], "Questions, complaints and requests")
+
+
+@student.route("/support/add", methods=["POST"])
+@login_required
+def support_add(me):
+    f = request.form
+    write("INSERT INTO support_ticket (student_id, subject, message) VALUES (%s, %s, %s)",
+          (me["student_id"], f.get("subject", "").strip(), f.get("message", "").strip()), "Sent! The admin will reply here.")
+    return redirect("/student/support")

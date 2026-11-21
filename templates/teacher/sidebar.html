@@ -1,0 +1,17 @@
+{% from "_macros.html" import icon %}
+<aside class="sidebar">
+    <h2 class="logo"><i>U</i>UniTrack</h2>
+    <p class="menu-label">FACULTY MENU</p>
+    <nav>
+        <a href="/teacher/"            class="{{ 'active' if active == 'dashboard' }}">{{ icon('home') }}Dashboard</a>
+        <a href="/teacher/classes"     class="{{ 'active' if active == 'classes' }}">{{ icon('book') }}My Classes</a>
+        <a href="/teacher/attendance"  class="{{ 'active' if active == 'attendance' }}">{{ icon('check') }}Mark Attendance</a>
+        <a href="/teacher/marks"       class="{{ 'active' if active == 'marks' }}">{{ icon('edit') }}Enter Marks</a>
+        <a href="/teacher/timetable"   class="{{ 'active' if active == 'timetable' }}">{{ icon('clock') }}Timetable</a>
+        <a href="/teacher/feedback"    class="{{ 'active' if active == 'feedback' }}">{{ icon('star') }}Student Feedback</a>
+    </nav>
+    <div class="sidebar-bottom">
+        <a class="switch-link" href="/account/password">{{ icon('lock') }}Change password</a>
+        <a class="switch-link" href="/logout">{{ icon('logout') }}Sign out</a>
+    </div>
+</aside>

@@ -2,18 +2,43 @@
 
 import os
 import csv, io
+try:                                   # read settings from a .env file when python-dotenv is installed
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 from flask import Flask, render_template, request, Response
 from db import get_db_connection
 from crud import crud
 from student import student
 from admin_tools import tools
+from admin_more import more
+from teacher import teacher
+from auth import auth, init_auth
+import bootstrap
 
 app = Flask(__name__)
 # needed for flash() messages; set SECRET_KEY in the environment for real use
 app.secret_key = os.environ.get("SECRET_KEY", "unitrack-dev-key")
 app.register_blueprint(crud)      # Create / Update / Delete routes (see crud.py)
 app.register_blueprint(tools)     # Bulk attendance + reports (see admin_tools.py)
+app.register_blueprint(more)      # Announcements, timetable, exams, fees ... (see admin_more.py)
 app.register_blueprint(student)   # Student portal under /student (see student.py)
+app.register_blueprint(teacher)   # Faculty portal under /teacher (see teacher.py)
+app.register_blueprint(auth)      # Login, logout, change password (see auth.py)
+init_auth(app)                    # login guard + audit trail
+
+
+@app.errorhandler(ConnectionError)
+def database_down(error):
+    return str(error), 500
+
+
+try:                              # create the v4 tables + login accounts (safe to repeat)
+    bootstrap.apply_schema()
+    bootstrap.ensure_users()
+except Exception as error:
+    print("Setup step skipped:", error)
 
 
 
@@ -276,6 +301,9 @@ def results():
                       "results", params)
 
 
+PER_PAGE = 25
+
+
 # COMMON FUNCTION FOR ALL LIST PAGES
 def show_table(title, query, columns, slug=None, params=()):
     connection = get_db_connection()
@@ -287,6 +315,10 @@ def show_table(title, query, columns, slug=None, params=()):
         cursor = connection.cursor()
         cursor.execute(query, params)
         records = cursor.fetchall()
+
+        q = (request.args.get("q") or "").strip().lower()      # server-side search over every column
+        if q:
+            records = [r for r in records if q in " ".join(str(v) for v in r if v is not None).lower()]
 
         # data for the Department / Course filter bar
         cursor.execute("SELECT department_id, department_name FROM department ORDER BY department_name")
@@ -311,12 +343,17 @@ def show_table(title, query, columns, slug=None, params=()):
             return Response(buf.getvalue(), mimetype="text/csv", headers={
                 "Content-Disposition": f"attachment; filename={slug or title.lower()}.csv"})
 
+        total = len(records)                                  # pagination (CSV above keeps every row)
+        pages = max(-(-total // PER_PAGE), 1)
+        page = min(max(request.args.get("page", 1, type=int), 1), pages)
+        shown = records[(page - 1) * PER_PAGE: page * PER_PAGE]
+
         return render_template(
             "data_table.html",
             title=title,
             slug=slug,
             columns=columns,
-            records=records,
+            records=shown, total=total, page=page, pages=pages, per_page=PER_PAGE, q=q,
             departments=departments,
             course_list=course_list,
             sel_dept=sel_dept,
@@ -330,4 +367,4 @@ def show_table(title, query, columns, slug=None, params=()):
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=os.environ.get("FLASK_DEBUG", "1") == "1")

@@ -3,6 +3,7 @@
 {% block title %}{{ title }}{% endblock %}
 {% block heading %}{{ title }}{% endblock %}
 {% block content %}
+{% set qs = request.args.to_dict() %}
 <div class="card" style="margin-top:0">
     <div class="table-head">
         <div>
@@ -10,9 +11,9 @@
             <p class="section-subtitle">{% if scope %}Showing only <strong>{{ scope }}</strong>{% else %}View and manage university {{ title|lower }} records{% endif %}.</p>
         </div>
         <div class="table-tools">
-            <input type="search" class="search" id="tableSearch" placeholder="Search {{ title|lower }}…">
+            <input type="search" class="search" name="q" form="filterForm" value="{{ q }}" placeholder="Search {{ title|lower }}… (press Enter)">
             {% if slug == 'attendance' %}<a href="/attendance/bulk" class="btn btn-light">✓ Bulk Mark</a>{% endif %}
-            <a href="{{ url_for(request.endpoint, export='csv', dept=sel_dept, course=sel_course) }}" class="btn btn-light">⬇ CSV</a>
+            <a href="{{ url_for(request.endpoint, export='csv', dept=sel_dept, course=sel_course, q=q or none) }}" class="btn btn-light">⬇ CSV</a>
             {% if slug %}<a href="/{{ slug }}/add" class="btn btn-primary">+ Add New</a>{% endif %}
         </div>
     </div>
@@ -27,7 +28,7 @@
             <option value="">All courses</option>
             {% for c in course_list %}<option value="{{ c[0] }}" data-dept="{{ c[3] }}" {{ 'selected' if c[0] == sel_course }}>{{ c[1] }} · {{ c[2] }}</option>{% endfor %}
         </select>
-        {% if sel_dept or sel_course %}<a href="{{ url_for(request.endpoint) }}" class="btn btn-light btn-small">✕ Clear</a>{% endif %}
+        {% if sel_dept or sel_course or q %}<a href="{{ url_for(request.endpoint) }}" class="btn btn-light btn-small">✕ Clear</a>{% endif %}
     </form>
 
     <div class="table-wrap">
@@ -46,7 +47,6 @@
                     {% endfor %}
                     {% if slug %}
                     <td>
-                        {# the first column of every list query is the record id #}
                         {% if slug == 'courses' %}
                         <a href="/students?course={{ record[0] }}" class="btn btn-small btn-light">Students</a>
                         <a href="/faculty?course={{ record[0] }}" class="btn btn-small btn-light">Faculty</a>
@@ -65,7 +65,17 @@
             </tbody>
         </table>
     </div>
-    <p class="table-foot">Showing <span id="shown">{{ records|length }}</span> of {{ records|length }} records</p>
+
+    <div class="pager">
+        <span class="table-foot" style="margin:0">{% if total %}Showing {{ (page - 1) * per_page + 1 }}–{{ (page - 1) * per_page + records|length }} of {{ total }} records{% else %}0 records{% endif %}</span>
+        {% if pages > 1 %}
+        <span>
+            <a class="btn btn-light btn-small" aria-disabled="{{ 'true' if page <= 1 else 'false' }}" href="{{ url_for(request.endpoint, **dict(qs, page=page - 1)) }}">← Prev</a>
+            <span style="margin:0 8px;color:var(--muted)">Page {{ page }} of {{ pages }}</span>
+            <a class="btn btn-light btn-small" aria-disabled="{{ 'true' if page >= pages else 'false' }}" href="{{ url_for(request.endpoint, **dict(qs, page=page + 1)) }}">Next →</a>
+        </span>
+        {% endif %}
+    </div>
 </div>
 {% endblock %}
 
@@ -78,11 +88,5 @@ function narrowCourses() {              // show only the courses of the chosen d
 narrowCourses();
 deptSel.addEventListener('change', () => { courseSel.value = ''; form.submit(); });
 courseSel.addEventListener('change', () => { deptSel.value = ''; form.submit(); });
-const box = document.getElementById('tableSearch'), rows = [...document.querySelectorAll('#dataTable tbody tr')];
-box.addEventListener('input', () => {
-    const q = box.value.toLowerCase(); let n = 0;
-    rows.forEach(r => { const hit = r.textContent.toLowerCase().includes(q); r.style.display = hit ? '' : 'none'; if (hit) n++; });
-    document.getElementById('shown').textContent = n;
-});
 </script>
 {% endblock %}

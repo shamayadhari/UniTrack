@@ -1,0 +1,4 @@
+{% extends "base.html" %}
+{% block sidebar %}{% include "teacher/sidebar.html" %}{% endblock %}
+{% block profile %}<a class="profile" href="/teacher/"><span class="avatar">{{ me.faculty_name.replace('Dr. ','').replace('Prof. ','')[0]|upper }}</span><span>{{ me.faculty_name }}</span></a>{% endblock %}
+{% block subheading %}{{ me.designation }} · {{ me.department_name }}{% endblock %}

@@ -11,7 +11,14 @@
 </section>
 
 <div class="card">
-    <h3>⚠️ At-risk students</h3><p class="sub">Active students below {{ min_att }}% attendance or with failed exams.</p>
+    <div class="table-head" style="margin-bottom:6px"><div><h3>Attendance trend</h3><p class="sub" style="margin:0">Average attendance per class day</p></div>
+        <form method="get" class="table-tools"><input type="date" name="from" value="{{ lo }}" class="search" style="background-image:none;padding-left:12px;width:auto"><input type="date" name="to" value="{{ hi }}" class="search" style="background-image:none;padding-left:12px;width:auto"><button class="btn btn-light btn-small">Apply</button></form></div>
+    <div class="chart-box"><canvas id="trendChart"></canvas></div>
+</div>
+
+<div class="card">
+    <div class="table-head" style="margin-bottom:6px"><div><h3>⚠️ At-risk students</h3></div>
+        <form method="post" action="/reports/warn" onsubmit="return confirm('E-mail every student below {{ min_att }}% attendance?')"><button class="btn btn-primary btn-small">✉ Email attendance warnings</button></form></div><p class="sub">Active students below {{ min_att }}% attendance or with failed exams.</p>
     <div class="table-wrap"><table>
         <thead><tr><th>Enrollment No.</th><th>Name</th><th>Department</th><th>Sem</th><th>Attendance</th><th>Avg score</th><th>Why</th></tr></thead>
         <tbody>
@@ -38,4 +45,25 @@
             {% else %}<li class="empty">No graded exams yet.</li>{% endfor %}
         </ul></div>
 </section>
+
+<div class="card">
+    <h3>⭐ Faculty ratings</h3><p class="sub">From student course feedback (anonymous to faculty)</p>
+    <div class="table-wrap"><table>
+        <thead><tr><th>Faculty</th><th>Course</th><th>Section</th><th>Avg rating</th><th>Votes</th></tr></thead>
+        <tbody>{% for r in ratings %}<tr><td>{{ r.faculty_name }}</td><td>{{ r.course_code }}</td><td>{{ r.section }}</td>
+            <td><span class="badge {{ 'b-ok' if r.avg_rating >= 4 else 'b-warn' if r.avg_rating >= 3 else 'b-bad' }}">{{ r.avg_rating }} / 5</span></td><td>{{ r.votes }}</td></tr>
+        {% else %}<tr><td colspan="5" class="empty">No feedback submitted yet.</td></tr>{% endfor %}</tbody>
+    </table></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+Chart.defaults.font.family = "'Inter', sans-serif"; Chart.defaults.color = '#91899f';
+new Chart(document.getElementById('trendChart'), { type: 'line',
+  data: { labels: {{ trend_labels | tojson }}, datasets: [{ data: {{ trend_values | tojson }}, borderColor: '#8062c7', backgroundColor: 'rgba(147,112,219,.15)', fill: true, tension: .35, pointRadius: 3 }] },
+  options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+             scales: { y: { min: 0, max: 100, grid: { color: 'rgba(145,137,159,.18)' } }, x: { grid: { display: false } } } } });
+</script>
 {% endblock %}

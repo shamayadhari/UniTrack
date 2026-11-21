@@ -5,12 +5,21 @@
     <nav>
         <a href="/student/"           class="{{ 'active' if active == 'dashboard' }}">{{ icon('home') }}Dashboard</a>
         <a href="/student/courses"    class="{{ 'active' if active == 'courses' }}">{{ icon('book') }}My Courses</a>
+        <a href="/student/timetable"  class="{{ 'active' if active == 'timetable' }}">{{ icon('clock') }}Timetable</a>
         <a href="/student/attendance" class="{{ 'active' if active == 'attendance' }}">{{ icon('check') }}Attendance</a>
         <a href="/student/results"    class="{{ 'active' if active == 'results' }}">{{ icon('award') }}Results</a>
-        <a href="/student/profile"    class="{{ 'active' if active == 'profile' }}">{{ icon('user') }}Profile</a>
+        <a href="/student/notices"    class="{{ 'active' if active == 'notices' }}">{{ icon('bell') }}Notices</a>
+    </nav>
+    <p class="menu-label">SERVICES</p>
+    <nav>
+        <a href="/student/leave"    class="{{ 'active' if active == 'leave' }}">{{ icon('mail') }}Leave</a>
+        <a href="/student/fees"     class="{{ 'active' if active == 'fees' }}">{{ icon('wallet') }}Fees</a>
+        <a href="/student/feedback" class="{{ 'active' if active == 'feedback' }}">{{ icon('star') }}Course Feedback</a>
+        <a href="/student/support"  class="{{ 'active' if active == 'support' }}">{{ icon('help') }}Ask Admin</a>
+        <a href="/student/profile"  class="{{ 'active' if active == 'profile' }}">{{ icon('user') }}Profile</a>
     </nav>
     <div class="sidebar-bottom">
-        <a class="switch-link" href="/student/logout">{{ icon('logout') }}Sign out</a>
-        <a class="switch-link" href="/">Admin dashboard →</a>
+        <a class="switch-link" href="/account/password">{{ icon('lock') }}Change password</a>
+        <a class="switch-link" href="/logout">{{ icon('logout') }}Sign out</a>
     </div>
 </aside>

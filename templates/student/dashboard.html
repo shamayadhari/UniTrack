@@ -17,6 +17,10 @@
 <div class="alert alert-warn" style="margin:22px 0 0">⚠️ Your overall attendance is {{ s.attendance_pct }}%, below the required {{ min_att }}%. Check the Attendance page to see which courses need attention.</div>
 {% endif %}
 
+{% if fees_due.n %}
+<div class="alert alert-warn" style="margin:22px 0 0">💳 You have {{ fees_due.n }} pending fee{{ 's' if fees_due.n != 1 }} totalling ₹{{ '{:,.0f}'.format(fees_due.due) }}. <a href="/student/fees" style="font-weight:700">View fees</a></div>
+{% endif %}
+
 <section class="stats-grid">
     <div class="stat-card {{ att_level }}"><div class="stat-icon">{{ icon('check') }}</div>
         <div><p>Attendance</p><h2>{{ (s.attendance_pct ~ '%') if s.attendance_pct is not none else '–' }}</h2><span>Required {{ min_att }}%</span></div></div>
@@ -47,9 +51,29 @@
         <h3>Upcoming Exams</h3><p class="sub">Next exams in your enrolled courses</p>
         <ul class="list">
             {% for e in upcoming %}
-            <li><div><strong>{{ e.course_name }}</strong><small>{{ e.exam_name }} · {{ e.maximum_marks|round(0)|int }} marks</small></div><span class="badge b-info">{{ e.exam_date.strftime('%d %b %Y') }}</span></li>
+            <li><div><strong>{{ e.course_name }}</strong><small>{{ e.exam_name }} · {{ e.maximum_marks|round(0)|int }} marks</small></div>{% set left = (e.exam_date - today).days %}<span class="badge {{ 'b-bad' if left <= 3 else 'b-warn' if left <= 10 else 'b-info' }}">{{ e.exam_date.strftime('%d %b') }} · {{ 'today' if left == 0 else 'in ' ~ left ~ ' day' ~ ('s' if left != 1 else '') }}</span></li>
             {% else %}<li class="empty">No upcoming exams scheduled.</li>{% endfor %}
         </ul>
+    </div>
+</section>
+
+<section class="two-col">
+    <div class="card">
+        <h3>Today's Classes</h3><p class="sub">{{ today.strftime('%A, %d %b') }}</p>
+        <ul class="list">
+            {% for c in today_classes %}
+            <li><div><strong>{{ c.course_name }}</strong><small>{{ c.faculty_name }} · Room {{ c.room }}</small></div><span class="badge b-info">{{ c.start_time.strftime('%H:%M') }}–{{ c.end_time.strftime('%H:%M') }}</span></li>
+            {% else %}<li class="empty">No classes today.</li>{% endfor %}
+        </ul>
+    </div>
+    <div class="card">
+        <h3>Notices</h3><p class="sub">Latest announcements</p>
+        <ul class="list">
+            {% for n in notices %}
+            <li style="align-items:flex-start"><div><strong>{{ n.title }}</strong><small>{{ n.created_at.strftime('%d %b %Y') }}</small><p style="margin-top:4px">{{ n.body[:110] }}{{ '…' if n.body|length > 110 }}</p></div></li>
+            {% else %}<li class="empty">No notices.</li>{% endfor %}
+        </ul>
+        <p style="margin-top:14px"><a href="/student/notices" class="btn btn-light btn-small">All notices</a></p>
     </div>
 </section>
 {% endblock %}
@@ -59,7 +83,7 @@
 <script>
 Chart.defaults.font.family = "'Inter', sans-serif"; Chart.defaults.color = '#91899f';
 const base = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
-               scales: { y: { beginAtZero: true, max: 100, grid: { color: '#f0ecf8' } }, x: { grid: { display: false } } } };
+               scales: { y: { beginAtZero: true, max: 100, grid: { color: 'rgba(145,137,159,.18)' } }, x: { grid: { display: false } } } };
 const attVals = {{ att_values | tojson }};
 new Chart(document.getElementById('attChart'), { type: 'bar',
     data: { labels: {{ att_labels | tojson }}, datasets: [{ data: attVals, borderRadius: 8, maxBarThickness: 46,

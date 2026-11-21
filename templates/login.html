@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UniTrack | Sign in</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script>try{document.documentElement.dataset.theme=localStorage.getItem('theme')||''}catch(e){}</script>
+</head>
+<body>
+<div class="auth">
+    <section class="auth-brand">
+        <h2 class="logo"><i>U</i>UniTrack</h2>
+        <div>
+            <h2>One campus.<br>Three portals.</h2>
+            <p>Students, faculty and administrators sign in here, and land on their own workspace.</p>
+        </div>
+        <small style="opacity:.8;position:relative;z-index:1">Smart University Management</small>
+    </section>
+    <section class="auth-form">
+        <div class="auth-box">
+            <h1>Welcome back</h1>
+            <p class="sub">Sign in to continue.</p>
+            {% include "flash.html" %}
+            <div class="role-tabs" id="roleTabs">
+                <button type="button" data-hint="Enrollment number (e.g. KRM25CSE001)" class="on">Student</button>
+                <button type="button" data-hint="Your university email address">Faculty</button>
+                <button type="button" data-hint="admin">Admin</button>
+            </div>
+            <form method="post" autocomplete="off">
+                <input type="hidden" name="next" value="{{ next }}">
+                <div class="form-group"><label for="username" id="userLabel">Enrollment number (e.g. KRM25CSE001)</label>
+                    <input id="username" name="username" required autofocus></div>
+                <div class="form-group"><label for="password">Password</label>
+                    <input id="password" name="password" type="password" required></div>
+                <button class="btn btn-primary btn-block" type="submit">Sign in</button>
+            </form>
+            <p class="auth-alt">First time? Your starting password is your enrollment number (students) or <b>Faculty@123</b> (faculty). You'll be asked to change it.</p>
+        </div>
+    </section>
+</div>
+<script>
+document.querySelectorAll('#roleTabs button').forEach(b => b.onclick = () => {
+    document.querySelectorAll('#roleTabs button').forEach(x => x.classList.remove('on')); b.classList.add('on');
+    document.getElementById('userLabel').textContent = b.dataset.hint === 'admin' ? 'Username' : b.dataset.hint;
+    if (b.dataset.hint === 'admin') document.getElementById('username').value = 'admin';
+});
+</script>
+</body>
+</html>
