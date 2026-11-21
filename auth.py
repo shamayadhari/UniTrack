@@ -71,6 +71,8 @@ def login():
             execute("UPDATE app_user SET last_login = NOW() WHERE user_id = %s", (user["user_id"],))
             if user["must_change"]:
                 flash("Welcome! Please set your own password to continue.", "warn")
+            else:
+                flash("Signed in successfully.", "success")
             nxt = request.form.get("next", "")
             safe = nxt.startswith("/") and not nxt.startswith("//") and not nxt.startswith("/login")
             return redirect(nxt if safe else HOME[user["role"]])
