@@ -29,3 +29,10 @@ UI: all pages share `templates/base.html` + one stylesheet (`static/css/style.cs
 CSV download on every list page (`?export=csv`), Email column on Students.
 **Student:** attendance planner (classes to attend / can skip to stay at 75%), credit-weighted GPA on 10-point scale
 (from each course's average %, same cut-offs as the grading trigger), Print / Save-as-PDF on Results.
+
+## Course / department filters + more sample data
+Every admin list page (Students, Faculty, Courses, Enrollments, Attendance, Results) has a **Filter by** bar: pick a department OR a course
+(e.g. *EC201 · Digital Electronics*) and only its students / faculty / records show. The URL works too: `/students?course=5`, `/faculty?dept=2`.
+CSV export respects the filter. Students and Faculty tables have a **Courses / Teaches** column; Courses has Students + Faculty counts with
+quick "Students" / "Faculty" buttons.
+Run `more_data.sql` (after `database.sql`) to add 8 faculty, 20 students, a section B for every course, enrolments, attendance, exams and results.

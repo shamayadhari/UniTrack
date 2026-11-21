@@ -181,3 +181,10 @@ tbody tr:hover{background:var(--soft-2)}
   .card,.stat-card,.welcome{box-shadow:none!important;break-inside:avoid}
   .welcome{background:#fff!important;color:#000;border:1px solid #ccc}
 }
+
+/* ---------- filter bar ---------- */
+.filter-bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:16px;padding:12px 14px;background:var(--soft-2);border:1px solid var(--line);border-radius:12px}
+.filter-label{font-size:12px;font-weight:700;color:var(--primary-text);text-transform:uppercase;letter-spacing:.8px;margin-right:4px}
+.filter-bar select{padding:9px 12px;border:1px solid #ddd6ec;border-radius:10px;font:inherit;background:#fff;min-width:200px;max-width:100%}
+.filter-bar select:focus{outline:2px solid #c9b9f0}
+@media print{.filter-bar{display:none}}

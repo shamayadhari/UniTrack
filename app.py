@@ -124,79 +124,101 @@ def dashboard():
 
 
 
-#STUDENT PAGE
+# ----------------------------------------------------------------------
+# LIST PAGES  (Students, Faculty, Courses, Enrollments, Attendance, Results)
+# Every page can be narrowed with ?dept=<department_id> and/or ?course=<course_id>.
+# The "/*WHERE*/" marker in each query is replaced by those conditions; the ids
+# always travel as query parameters (%s), never inside the SQL text.
+# ----------------------------------------------------------------------
+def filtered(query, dept_sql, course_sql):
+    conditions, params = [], []
+    dept = request.args.get("dept", type=int)
+    course = request.args.get("course", type=int)
+    if dept:
+        conditions.append(f"{dept_sql} = %s")
+        params.append(dept)
+    if course:
+        conditions.append(course_sql)
+        params.append(course)
+    where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
+    return query.replace("/*WHERE*/", where), params
+
+
+# STUDENT PAGE
 @app.route("/students")
 def students():
-    query = """
-        SELECT
-            s.student_id,
-            s.enrollment_number,
-            s.first_name || ' ' || COALESCE(s.last_name, '') AS student_name,
-            s.email,
-            d.department_name,
-            sem.semester_number,
-            s.status
+    query, params = filtered("""
+        SELECT s.student_id, s.enrollment_number,
+               s.first_name || ' ' || COALESCE(s.last_name, '') AS student_name,
+               s.email, d.department_name, sem.semester_number,
+               (SELECT string_agg(c2.course_code, ', ' ORDER BY c2.course_code)
+                  FROM enrollment e2
+                  JOIN course_offering o2 ON o2.offering_id = e2.offering_id
+                  JOIN course c2 ON c2.course_id = o2.course_id
+                 WHERE e2.student_id = s.student_id
+                   AND e2.enrollment_status <> 'Dropped') AS courses,
+               s.status
         FROM student s
-        JOIN department d
-            ON s.department_id = d.department_id
-        JOIN semester sem
-            ON s.semester_id = sem.semester_id
-        ORDER BY s.student_id;
-    """
-
-    columns = [
-        "Student ID",
-        "Enrollment No.",
-        "Name",
-        "Email",
-        "Department",
-        "Semester",
-        "Status"
-    ]
-
-    return show_table("Students", query, columns, "students")
+        JOIN department d ON s.department_id = d.department_id
+        JOIN semester sem ON s.semester_id = sem.semester_id
+        /*WHERE*/
+        ORDER BY s.student_id
+    """, "s.department_id",
+        """EXISTS (SELECT 1 FROM enrollment ef
+                   JOIN course_offering ofr ON ofr.offering_id = ef.offering_id
+                  WHERE ef.student_id = s.student_id AND ofr.course_id = %s
+                    AND ef.enrollment_status <> 'Dropped')""")
+    columns = ["Student ID", "Enrollment No.", "Name", "Email", "Department",
+               "Semester", "Courses", "Status"]
+    return show_table("Students", query, columns, "students", params)
 
 
 # FACULTY PAGE
 @app.route("/faculty")
 def faculty():
-    return show_table(
-        "Faculty",
-        """
-        SELECT f.faculty_id, f.faculty_name, f.email,
-               f.designation, d.department_name
+    query, params = filtered("""
+        SELECT f.faculty_id, f.faculty_name, f.email, f.designation, d.department_name,
+               (SELECT string_agg(DISTINCT c2.course_code, ', ' ORDER BY c2.course_code)
+                  FROM course_offering o2
+                  JOIN course c2 ON c2.course_id = o2.course_id
+                 WHERE o2.faculty_id = f.faculty_id) AS courses
         FROM faculty f
         JOIN department d ON f.department_id = d.department_id
+        /*WHERE*/
         ORDER BY f.faculty_id
-        """,
-        ["ID", "Faculty Name", "Email", "Designation", "Department"],
-        "faculty"
-    )
+    """, "f.department_id",
+        """EXISTS (SELECT 1 FROM course_offering ofr
+                  WHERE ofr.faculty_id = f.faculty_id AND ofr.course_id = %s)""")
+    return show_table("Faculty", query,
+                      ["ID", "Faculty Name", "Email", "Designation", "Department", "Teaches"],
+                      "faculty", params)
 
 
 # COURSES PAGE
 @app.route("/courses")
 def courses():
-    return show_table(
-        "Courses",
-        """
-        SELECT c.course_id, c.course_code, c.course_name,
-               c.credits, d.department_name
+    query, params = filtered("""
+        SELECT c.course_id, c.course_code, c.course_name, c.credits, d.department_name,
+               (SELECT COUNT(*) FROM enrollment e
+                  JOIN course_offering o ON o.offering_id = e.offering_id
+                 WHERE o.course_id = c.course_id
+                   AND e.enrollment_status <> 'Dropped') AS students,
+               (SELECT COUNT(DISTINCT o.faculty_id) FROM course_offering o
+                 WHERE o.course_id = c.course_id) AS faculty
         FROM course c
         JOIN department d ON c.department_id = d.department_id
+        /*WHERE*/
         ORDER BY c.course_id
-        """,
-        ["ID", "Course Code", "Course Name", "Credits", "Department"],
-        "courses"
-    )
+    """, "c.department_id", "c.course_id = %s")
+    return show_table("Courses", query,
+                      ["ID", "Course Code", "Course Name", "Credits", "Department",
+                       "Students", "Faculty"], "courses", params)
 
 
 # ENROLLMENTS PAGE
 @app.route("/enrollments")
 def enrollments():
-    return show_table(
-        "Enrollments",
-        """
+    query, params = filtered("""
         SELECT en.enrollment_id,
                s.first_name || ' ' || COALESCE(s.last_name, '') AS student_name,
                c.course_code, c.course_name, o.section,
@@ -205,61 +227,57 @@ def enrollments():
         JOIN student s ON en.student_id = s.student_id
         JOIN course_offering o ON en.offering_id = o.offering_id
         JOIN course c ON o.course_id = c.course_id
+        /*WHERE*/
         ORDER BY en.enrollment_id
-        """,
-        ["ID", "Student", "Course Code", "Course", "Section", "Enrolled On", "Status"],
-        "enrollments"
-    )
+    """, "c.department_id", "o.course_id = %s")
+    return show_table("Enrollments", query,
+                      ["ID", "Student", "Course Code", "Course", "Section",
+                       "Enrolled On", "Status"], "enrollments", params)
 
 
 # ATTENDANCE PAGE
 @app.route("/attendance")
 def attendance():
-    return show_table(
-        "Attendance",
-        """
-        SELECT a.attendance_id, s.first_name || ' ' ||
-               COALESCE(s.last_name, '') AS student_name,
-               c.course_name, a.attendance_date,
-               a.attendance_status
+    query, params = filtered("""
+        SELECT a.attendance_id,
+               s.first_name || ' ' || COALESCE(s.last_name, '') AS student_name,
+               c.course_name, a.attendance_date, a.attendance_status
         FROM attendance a
         JOIN enrollment en ON a.enrollment_id = en.enrollment_id
         JOIN student s ON en.student_id = s.student_id
         JOIN course_offering o ON en.offering_id = o.offering_id
         JOIN course c ON o.course_id = c.course_id
+        /*WHERE*/
         ORDER BY a.attendance_date DESC, a.attendance_id
-        """,
-        ["ID", "Student", "Course", "Date", "Status"],
-        "attendance"
-    )
+    """, "c.department_id", "o.course_id = %s")
+    return show_table("Attendance", query,
+                      ["ID", "Student", "Course", "Date", "Status"], "attendance", params)
 
 
 # RESULTS PAGE
 @app.route("/results")
 def results():
-    return show_table(
-        "Results",
-        """
+    query, params = filtered("""
         SELECT r.result_id,
                s.first_name || ' ' || COALESCE(s.last_name, '') AS student_name,
                c.course_name, ex.exam_name,
-               r.marks_obtained, ex.maximum_marks,
-               r.grade, r.result_status
+               r.marks_obtained, ex.maximum_marks, r.grade, r.result_status
         FROM results r
         JOIN enrollment en ON r.enrollment_id = en.enrollment_id
         JOIN student s ON en.student_id = s.student_id
         JOIN examination ex ON r.exam_id = ex.exam_id
         JOIN course_offering o ON ex.offering_id = o.offering_id
         JOIN course c ON o.course_id = c.course_id
+        /*WHERE*/
         ORDER BY r.result_id
-        """,
-        ["ID", "Student", "Course", "Exam", "Marks", "Maximum", "Grade", "Status"],
-        "results"
-    )
+    """, "c.department_id", "o.course_id = %s")
+    return show_table("Results", query,
+                      ["ID", "Student", "Course", "Exam", "Marks", "Maximum", "Grade", "Status"],
+                      "results", params)
 
 
-# COMMON FUNCTION FOR ALL FOUR PAGES
-def show_table(title, query, columns, slug=None):
+# COMMON FUNCTION FOR ALL LIST PAGES
+def show_table(title, query, columns, slug=None, params=()):
     connection = get_db_connection()
 
     if connection is None:
@@ -267,13 +285,25 @@ def show_table(title, query, columns, slug=None):
 
     try:
         cursor = connection.cursor()
-        cursor.execute(query)
+        cursor.execute(query, params)
         records = cursor.fetchall()
+
+        # data for the Department / Course filter bar
+        cursor.execute("SELECT department_id, department_name FROM department ORDER BY department_name")
+        departments = cursor.fetchall()
+        cursor.execute("""SELECT course_id, course_code, course_name, department_id
+                          FROM course ORDER BY course_code""")
+        course_list = cursor.fetchall()
 
         cursor.close()
         connection.close()
 
-        if request.args.get("export") == "csv":     # ?export=csv -> download the table
+        sel_dept = request.args.get("dept", type=int)
+        sel_course = request.args.get("course", type=int)
+        scope = [c[2] for c in course_list if c[0] == sel_course] or \
+                [d[1] for d in departments if d[0] == sel_dept]
+
+        if request.args.get("export") == "csv":     # ?export=csv -> download the (filtered) table
             buf = io.StringIO()
             writer = csv.writer(buf)
             writer.writerow(columns)
@@ -286,7 +316,12 @@ def show_table(title, query, columns, slug=None):
             title=title,
             slug=slug,
             columns=columns,
-            records=records
+            records=records,
+            departments=departments,
+            course_list=course_list,
+            sel_dept=sel_dept,
+            sel_course=sel_course,
+            scope=scope[0] if scope else None
         )
 
     except Exception as error:
